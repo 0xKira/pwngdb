@@ -62,7 +62,7 @@ class AngelHeapCmd(object):
         (target,) = normalize_argv(arg, 1)
         angelheap.force(target)
 
-    def printfastbin(self):
+    def fastbins(self):
         """ Print the fastbin """
         angelheap.putfastbin()
 

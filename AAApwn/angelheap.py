@@ -1,9 +1,7 @@
-from __future__ import print_function
 # !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import gdb
-import subprocess
 import re
 import copy
 import struct
@@ -85,6 +83,7 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
         self.arg = arg
 
     def stop(self):
+        global arch
         chunk = {}
         if len(arch) == 0:
             getarch()
@@ -134,6 +133,7 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
 
 class Malloc_Bp_handler(gdb.Breakpoint):
     def stop(self):
+        global arch
         if len(arch) == 0:
             getarch()
         if arch == "x86-64":
@@ -163,6 +163,7 @@ class Free_Bp_handler(gdb.Breakpoint):
         global freerecord
         global inmemalign
         global inrealloc
+        global arch
         get_top_lastremainder()
 
         if len(arch) == 0:
@@ -393,7 +394,7 @@ def set_thread_arena():
     global main_arena
     global enable_thread
     if capsize == 0:
-        arch = getarch()
+        getarch()
     try:
         data = gdb.execute("x/" + word + "&thread_arena", to_string=True)
     except:
@@ -415,7 +416,7 @@ def set_main_arena():
             "Cannot get main_arena's symbol address. Make sure you install libc debug file (libc6-dbg & libc6-dbg:i386 for debian package).")
         return
     libc = libcbase()
-    arch = getarch()
+    getarch()
     main_arena_off = offset
     main_arena = libc + main_arena_off
 
@@ -447,7 +448,7 @@ def get_top_lastremainder(arena=None):
         arena = main_arena
     chunk = {}
     if capsize == 0:
-        arch = getarch()
+        getarch()
     # get top
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(arena) + ").top"
     chunk["addr"] = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
@@ -480,13 +481,14 @@ def get_fast_bin(arena=None):
     global fastchunk
     global fastbinsize
     global freememoryarea
+
     if not arena:
         arena = main_arena
     fastbin = []
     fastchunk = []
     # freememoryarea = []
     if capsize == 0:
-        arch = getarch()
+        getarch()
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(arena) + ").fastbinsY"
     fastbinsY = int(gdb.execute(cmd, to_string=True).split(":")[0].split()[0].strip(), 16)
     for i in range(fastbinsize - 3):
@@ -540,8 +542,9 @@ def get_tcache():
     global tcache
     global tcache_enable
     global tcache_max_bin
+
     if capsize == 0:
-        arch = getarch()
+        getarch()
     try:
         tcache_max_bin = int(gdb.execute("x/" + word + " &mp_.tcache_bins", to_string=True).split(":")[1].strip(), 16)
         try:
@@ -561,12 +564,13 @@ def get_tcache():
 
 def get_tcache_entry():
     global tcache_entry
+
     get_tcache()
     if not tcache_enable:
         return
     tcache_entry = []
     if capsize == 0:
-        arch = getarch()
+        getarch()
     if tcache and tcache_max_bin:
         entry_start = tcache + tcache_max_bin
         for i in range(tcache_max_bin):
@@ -600,7 +604,7 @@ def trace_normal_bin(chunkhead, arena=None):
     libc = libcbase()
     bins = []
     if capsize == 0:
-        arch = getarch()
+        getarch()
     if chunkhead["addr"] == 0:  # main_arena not initial
         return None
     chunk = {}
@@ -688,7 +692,7 @@ def get_unsortbin(arena=None):
         arena = main_arena
     unsortbin = []
     if capsize == 0:
-        arch = getarch()
+        getarch()
     chunkhead = {}
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(arena) + ").bins"
     chunkhead["addr"] = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
@@ -701,7 +705,7 @@ def get_smallbin(arena=None):
         arena = main_arena
     smallbin = {}
     if capsize == 0:
-        arch = getarch()
+        getarch()
     max_smallbin_size = 512 * int(capsize / 4)
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(arena) + ").bins"
     bins_addr = int(gdb.execute(cmd, to_string=True).split(":")[0].split()[0].strip(), 16)
@@ -721,7 +725,7 @@ def get_smallbin(arena=None):
 
 def largbin_index(size):
     if capsize == 0:
-        arch = getarch()
+        getarch()
     if capsize == 8:
         if (size >> 6) <= 48:
             idx = 48 + (size >> 6)
@@ -758,7 +762,7 @@ def get_largebin(arena=None):
         arena = main_arena
     largebin = {}
     if capsize == 0:
-        arch = getarch()
+        getarch()
     min_largebin = 512 * int(capsize / 4)
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(arena) + ").bins"
     bins_addr = int(gdb.execute(cmd, to_string=True).split(":")[0].split()[0].strip(), 16)
@@ -780,7 +784,7 @@ def get_system_mem(arena=None):
     if not arena:
         arena = main_arena
     if capsize == 0:
-        arch = getarch()
+        getarch()
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(arena) + ").system_mem"
     system_mem = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
 
@@ -888,7 +892,7 @@ def find_overlap(chunk, bins):
 
 def unlinkable(chunkaddr, fd=None, bk=None):
     if capsize == 0:
-        arch = getarch()
+        getarch()
     try:
         cmd = "x/" + word + hex(chunkaddr + capsize)
         chunk_size = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16) & 0xfffffffffffffff8
@@ -930,7 +934,7 @@ def freeable(victim):
     global fastchunk
     global system_mem
     if capsize == 0:
-        arch = getarch()
+        getarch()
     chunkaddr = victim
     try:
         if not get_heap_info():
@@ -1052,8 +1056,9 @@ def get_heapbase():
 
 def chunkinfo(victim):
     global fastchunk
+
     if capsize == 0:
-        arch = getarch()
+        getarch()
     chunkaddr = victim
     try:
         if not get_heap_info():
@@ -1103,20 +1108,21 @@ def chunkinfo(victim):
 
 def freeptr(ptr):
     if capsize == 0:
-        arch = getarch()
+        getarch()
     freeable(ptr - capsize * 2)
 
 
 def chunkptr(ptr):
     if capsize == 0:
-        arch = getarch()
+        getarch()
     chunkinfo(ptr - capsize * 2)
 
 
 def mergeinfo(victim):
     global fastchunk
+
     if capsize == 0:
-        arch = getarch()
+        getarch()
     chunkaddr = victim
     try:
         if not get_heap_info():
@@ -1179,7 +1185,7 @@ def mergeinfo(victim):
 
 def force(target):
     if capsize == 0:
-        arch = getarch()
+        getarch()
     if not get_heap_info():
         print("Can't find heap info")
         return
@@ -1192,7 +1198,7 @@ def force(target):
 
 def putfastbin(arena=None):
     if capsize == 0:
-        arch = getarch()
+        getarch()
 
     if not get_heap_info(arena):
         print("Can't find heap info")
@@ -1256,7 +1262,7 @@ def put_tcache():
 
 def putheapinfo(arena=None):
     if capsize == 0:
-        arch = getarch()
+        getarch()
     if not putfastbin(arena):
         return
     if "memerror" in top:
@@ -1330,7 +1336,7 @@ def putheapinfo(arena=None):
 def putarenainfo():
     set_main_arena()
     if capsize == 0:
-        arch = getarch()
+        getarch()
     cur_arena = 0
     if main_arena:
         try:
@@ -1376,7 +1382,7 @@ def putinused():
 
 def parse_heap(arena=None):
     if capsize == 0:
-        arch = getarch()
+        getarch()
     if not get_heap_info(arena):
         print("can't find heap info")
         return
@@ -1430,7 +1436,7 @@ def parse_heap(arena=None):
 
 def fastbin_idx(size):
     if capsize == 0:
-        arch = getarch()
+        getarch()
     if capsize == 8:
         return (size >> 4) - 2
     else:
@@ -1457,7 +1463,7 @@ def fake_fast(addr, size):
 
 def get_fake_fast(addr, size=None):
     if capsize == 0:
-        arch = getarch()
+        getarch()
     fast_max = int(
         gdb.execute("x/" + word + "&global_max_fast",
                     to_string=True).split(":")[1].strip(), 16)

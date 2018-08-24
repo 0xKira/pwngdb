@@ -83,7 +83,7 @@ class ReattachCommand(gdb.Command):
 
         pid = pid.decode().split(' ')[0]
         gdb.execute('attach ' + pid)
-        gdb.execute('heap')
+        gdb.execute('getheap')
         global is_pie_on
         if pie_on(self.lastFn):
             is_pie_on = True

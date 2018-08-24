@@ -63,7 +63,7 @@ class PwnCmd(object):
 
         print("\033[34m" + "libc : " + "\033[37m" + hex(libcbs))
 
-    def heap(self):
+    def getheap(self):
         """ Get heapbase """
         heapbase = getheapbase()
         if heapbase:
