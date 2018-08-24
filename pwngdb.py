@@ -2,7 +2,6 @@ from __future__ import print_function
 import gdb
 import subprocess
 import re
-import copy
 from os import path
 
 directory, file = path.split(__file__)
@@ -14,13 +13,9 @@ directory = path.abspath(directory)
 capsize = 0
 word = ""
 arch = ""
-magic_variable = [
-    "__malloc_hook", "__free_hook", "__realloc_hook", "stdin", "stdout",
-    "_IO_list_all", "__after_morecore_hook"
-]
-magic_function = [
-    "system", "execve", "open", "read", "write", "gets", "setcontext+0x35"
-]
+magic_variable = ["__malloc_hook", "__free_hook", "__realloc_hook", "stdin", "stdout", "_IO_list_all",
+                  "__after_morecore_hook"]
+magic_function = ["system", "execve", "open", "read", "write", "gets", "setcontext+0x35"]
 
 
 def to_int(val):
@@ -60,9 +55,7 @@ class PwnCmd(object):
 
     def __init__(self):
         # list all commands
-        self.commands = [
-            cmd for cmd in dir(self) if callable(getattr(self, cmd))
-        ]
+        self.commands = [cmd for cmd in dir(self) if callable(getattr(self, cmd))]
 
     def libc(self):
         """ Get libc base """
@@ -145,12 +138,10 @@ class PwnCmd(object):
             print("\033[37m========== variables ==========")
             for v in magic_variable:
                 cmd = "x/" + word + "&" + v
-                content = gdb.execute(
-                    cmd, to_string=True).split(":")[1].strip()
+                content = gdb.execute(cmd, to_string=True).split(":")[1].strip()
                 offset = hex(getoff("&" + v))
                 pad = 36 - len(v) - len(offset) - 2
-                print("\033[34m%s\033[33m(%s)\033[37m%s: \033[37m%s" %
-                      (v, offset, ' ' * pad, content))
+                print("\033[34m%s\033[33m(%s)\033[37m%s: \033[37m%s" % (v, offset, ' ' * pad, content))
         except:
             print("You need run the program first")
 
@@ -186,9 +177,7 @@ class PwnCmd(object):
         """ Print dynamic section """
         processname = getprocname()
         if processname:
-            dyn = subprocess.check_output(
-                "readelf -d \"" + processname + "\"",
-                shell=True).decode('utf8')
+            dyn = subprocess.check_output("readelf -d \"" + processname + "\"", shell=True).decode('utf8')
             print(dyn)
         else:
             print("No current process or executable file specified.")
@@ -197,8 +186,7 @@ class PwnCmd(object):
         """ ROPgadget """
         procname = getprocname()
         if procname:
-            subprocess.call(
-                "ROPgadget --binary \"" + procname + "\"", shell=True)
+            subprocess.call("ROPgadget --binary \"" + procname + "\"", shell=True)
         else:
             print("No current process or executable file specified.")
 
@@ -220,8 +208,7 @@ class PwnCmd(object):
                 return
         try:
             print("Attaching to %s ..." % processname)
-            pidlist = subprocess.check_output(
-                "pidof " + processname, shell=True).decode('utf8').split()
+            pidlist = subprocess.check_output("pidof " + processname, shell=True).decode('utf8').split()
             gdb.execute("attach " + pidlist[0])
             getheapbase()
             libcbase()
@@ -298,10 +285,7 @@ class PwnCmd(object):
 
     def xo(self, *arg):
         """ Examine at offset from base address """
-        (
-            _,
-            arg1,
-        ) = normalize_argv(arg, 2)
+        (_, arg1,) = normalize_argv(arg, 2)
         cmd = "x" + arg[0] + " "
         if arg1:
             codebaseaddr, _ = codeaddr()
@@ -463,11 +447,8 @@ def codeaddr():  # ret (start,end)
 def gettls():
     arch = getarch()
     if arch == "i386":
-        vsysaddr = gdb.execute(
-            "info functions __kernel_vsyscall",
-            to_string=True).split("\n")[-2].split()[0].strip()
-        sysinfo = gdb.execute(
-            "find " + vsysaddr, to_string=True).split("\n")[2]
+        vsysaddr = gdb.execute("info functions __kernel_vsyscall", to_string=True).split("\n")[-2].split()[0].strip()
+        sysinfo = gdb.execute("find " + vsysaddr, to_string=True).split("\n")[2]
         match = re.search(r"0x[0-9a-z]{8}", sysinfo)
         if match:
             tlsaddr = int(match.group(), 16) - 0x10
@@ -487,15 +468,11 @@ def getcanary():
     tlsaddr = gettls()
     if arch == "i386":
         offset = 0x14
-        result = gdb.execute(
-            "x/xw " + hex(tlsaddr + offset),
-            to_string=True).split(":")[1].strip()
+        result = gdb.execute("x/xw " + hex(tlsaddr + offset), to_string=True).split(":")[1].strip()
         return int(result, 16)
     elif arch == "x86-64":
         offset = 0x28
-        result = gdb.execute(
-            "x/xg " + hex(tlsaddr + offset),
-            to_string=True).split(":")[1].strip()
+        result = gdb.execute("x/xg " + hex(tlsaddr + offset), to_string=True).split(":")[1].strip()
         return int(result, 16)
     else:
         return "error"
@@ -526,9 +503,7 @@ def searchcall(sym):
         cmd += "--demangle "
     cmd += "\"" + procname + "\""
     try:
-        call = subprocess.check_output(
-            cmd + "| grep \"call.*" + sym + "@plt>\"",
-            shell=True).decode('utf8')
+        call = subprocess.check_output(cmd + "| grep \"call.*" + sym + "@plt>\"", shell=True).decode('utf8')
         return call
     except:
         return "symbol not found"
@@ -536,8 +511,7 @@ def searchcall(sym):
 
 def ispie():
     procname = getprocname()
-    result = subprocess.check_output(
-        "readelf -h " + "\"" + procname + "\"", shell=True).decode('utf8')
+    result = subprocess.check_output("readelf -h " + "\"" + procname + "\"", shell=True).decode('utf8')
     if re.search("DYN", result):
         return True
     else:
@@ -571,10 +545,8 @@ def showfpchain():
     try:
         while chain != 0:
             print(" --> ", end="")
-            cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(
-                chain) + ").file._chain"
-            chain = int(
-                gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
+            cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(chain) + ").file._chain"
+            chain = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
             print("0x%x" % chain, end="")
         print("")
     except:
@@ -584,51 +556,35 @@ def showfpchain():
 def testorange(addr):
     getarch()
     result = True
-    cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(
-        addr) + ").file._mode"
-    mode = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(),
-               16) & 0xffffffff
-    cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(
-        addr) + ").file._IO_write_ptr"
+    cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(addr) + ").file._mode"
+    mode = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16) & 0xffffffff
+    cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(addr) + ").file._IO_write_ptr"
     write_ptr = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
-    cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(
-        addr) + ").file._IO_write_base"
-    write_base = int(
-        gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
+    cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(addr) + ").file._IO_write_base"
+    write_base = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
     if mode < 0x80000000 and mode != 0:
         try:
-            cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(
-                addr) + ").file._wide_data"
-            wide_data = int(
-                gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
-            cmd = "x/" + word + "&((struct _IO_wide_data *)" + hex(
-                wide_data) + ")._IO_write_ptr"
-            w_write_ptr = int(
-                gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
-            cmd = "x/" + word + "&((struct _IO_wide_data *)" + hex(
-                wide_data) + ")._IO_write_base"
-            w_write_base = int(
-                gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
+            cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(addr) + ").file._wide_data"
+            wide_data = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
+            cmd = "x/" + word + "&((struct _IO_wide_data *)" + hex(wide_data) + ")._IO_write_ptr"
+            w_write_ptr = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
+            cmd = "x/" + word + "&((struct _IO_wide_data *)" + hex(wide_data) + ")._IO_write_base"
+            w_write_base = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
             if w_write_ptr <= w_write_base:
-                print(
-                    "\033[;1;31m_wide_data->_IO_write_ptr(0x%x) < _wide_data->_IO_write_base(0x%x)\033[1;37m"
-                    % (w_write_ptr, w_write_base))
+                print("\033[;1;31m_wide_data->_IO_write_ptr(0x%x) < _wide_data->_IO_write_base(0x%x)\033[1;37m" % (
+                w_write_ptr, w_write_base))
                 result = False
         except:
             print("\033;1;31mCan't access wide_data\033[1;37m")
             result = False
     else:
         if write_ptr <= write_base:
-            print(
-                "\033[;1;31m_IO_write_ptr(0x%x) < _IO_write_base(0x%x)\033[1;37m"
-                % (write_ptr, write_base))
+            print("\033[;1;31m_IO_write_ptr(0x%x) < _IO_write_base(0x%x)\033[1;37m" % (write_ptr, write_base))
             result = False
     if result:
         print("Result : \033[34mTrue\033[37m")
-        cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(
-            addr) + ").vtable.__overflow"
-        overflow = int(
-            gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
+        cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(addr) + ").vtable.__overflow"
+        overflow = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
         print("Func : \033[33m 0x%x\033[1;37m" % overflow)
     else:
         print("Result : \033[31mFalse\033[1;37m")
@@ -646,10 +602,8 @@ def testfsop(addr=None):
     testorange(chain)
     try:
         while chain != 0:
-            cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(
-                chain) + ").file._chain"
-            chain = int(
-                gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
+            cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(chain) + ").file._chain"
+            chain = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
             if chain != 0:
                 print("---------- fp : 0x%x ----------" % chain)
                 testorange(chain)

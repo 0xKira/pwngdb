@@ -11,9 +11,7 @@ class AngelHeapCmd(object):
 
     def __init__(self):
         # list all commands
-        self.commands = [
-            cmd for cmd in dir(self) if callable(getattr(self, cmd))
-        ]
+        self.commands = [cmd for cmd in dir(self) if callable(getattr(self, cmd))]
 
     def tracemalloc(self, *arg):
         """ Trace the malloc and free and detect some error """
@@ -85,8 +83,7 @@ class AngelHeapCmdWrapper(gdb.Command):
     """ angelheap command wrapper """
 
     def __init__(self):
-        super(AngelHeapCmdWrapper, self).__init__("angelheap",
-                                                  gdb.COMMAND_USER)
+        super(AngelHeapCmdWrapper, self).__init__("angelheap", gdb.COMMAND_USER)
 
     def invoke(self, args, from_tty):
         global angelheap_cmd

@@ -58,8 +58,7 @@ class ReattachCommand(gdb.Command):
 
     def __init__(self):
         self.lastFn = ''
-        super(ReattachCommand, self).__init__("ra", gdb.COMMAND_SUPPORT,
-                                              gdb.COMPLETE_FILENAME)
+        super(ReattachCommand, self).__init__("ra", gdb.COMMAND_SUPPORT, gdb.COMPLETE_FILENAME)
 
     def invoke(self, arg, from_tty):
         args = arg.split(' ')
@@ -70,8 +69,7 @@ class ReattachCommand(gdb.Command):
 
         if len(self.lastFn) == 0:
             print(
-                'You have to specify the name of the process (for pidof) for the first time (it will be cached for later)'
-            )
+                'You have to specify the name of the process (for pidof) for the first time (it will be cached for later)')
             return
 
         global pid
@@ -90,7 +88,7 @@ class ReattachCommand(gdb.Command):
         if pie_on(self.lastFn):
             is_pie_on = True
             set_elf_base(self.lastFn)
-            # if exsiting some breakpoints, delete them and set new breakpoints
+            # if existing some breakpoints, delete them and set new breakpoints
             if gdb.breakpoints():
                 breakpoints = []
                 for br in gdb.breakpoints():
@@ -110,8 +108,7 @@ class PieBreak(gdb.Command):
     """ Break according to the offset to the elf base address """
 
     def __init__(self):
-        super(PieBreak, self).__init__("bb", gdb.COMMAND_SUPPORT,
-                                       gdb.COMPLETE_EXPRESSION)
+        super(PieBreak, self).__init__("bb", gdb.COMMAND_SUPPORT, gdb.COMPLETE_EXPRESSION)
 
     def invoke(self, arg, from_tty):
         offset = arg.split(' ')[0].strip()
@@ -121,10 +118,7 @@ class PieBreak(gdb.Command):
         if is_pie_on:
             set_current_pid()
             set_elf_base(filename)
-            gdb.execute(
-                'b *%d' %
-                (int(gdb.parse_and_eval(offset).cast(gdb.lookup_type('long')))
-                 + elf_base))
+            gdb.execute('b *%d' % (int(gdb.parse_and_eval(offset).cast(gdb.lookup_type('long'))) + elf_base))
         else:
             gdb.execute('b *%d' % (gdb.parse_and_eval(offset)))
 
