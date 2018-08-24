@@ -8,7 +8,7 @@ from os import path
 directory, file = path.split(__file__)
 directory = path.expanduser(directory)
 directory = path.abspath(directory)
-#sys.path.append(directory)
+# sys.path.append(directory)
 
 # arch
 capsize = 0
@@ -96,13 +96,13 @@ class PwnCmd(object):
         print("\033[34m" + "canary : " + "\033[37m" + hex(getcanary()))
 
     def fmtarg(self, *arg):
-        (addr, ) = normalize_argv(arg, 1)
+        (addr,) = normalize_argv(arg, 1)
         getfmtarg(addr)
 
     def off(self, *arg):
         """ Calculate the offset of libc """
-        #(sym,)= normalize_argv(arg,1)
-        (sym, ) = normalize_argv(arg, 1)
+        # (sym,)= normalize_argv(arg,1)
+        (sym,) = normalize_argv(arg, 1)
         symaddr = getoff(sym)
         if symaddr == 0:
             print("Not found the symbol")
@@ -114,7 +114,7 @@ class PwnCmd(object):
 
     def fp(self, *arg):
         """ show FILE structure """
-        (addr, ) = normalize_argv(arg, 1)
+        (addr,) = normalize_argv(arg, 1)
         showfp(addr)
 
     def fpchain(self):
@@ -123,7 +123,7 @@ class PwnCmd(object):
 
     def orange(self, *arg):
         """ test house of orange """
-        (addr, ) = normalize_argv(arg, 1)
+        (addr,) = normalize_argv(arg, 1)
         if addr:
             testorange(addr)
         else:
@@ -131,7 +131,7 @@ class PwnCmd(object):
 
     def fsop(self, *arg):
         """ test fsop """
-        (addr, ) = normalize_argv(arg, 1)
+        (addr,) = normalize_argv(arg, 1)
         testfsop(addr)
 
     def magic(self):
@@ -204,13 +204,13 @@ class PwnCmd(object):
 
     def findcall(self, *arg):
         """ Find some function call """
-        (sym, ) = normalize_argv(arg, 1)
+        (sym,) = normalize_argv(arg, 1)
         output = searchcall(sym)
         print(output)
 
     def at(self, *arg):
         """ Attach by processname """
-        (processname, ) = normalize_argv(arg, 1)
+        (processname,) = normalize_argv(arg, 1)
         if not processname:
             processname = getprocname(relative=True)
             if not processname:
@@ -232,7 +232,7 @@ class PwnCmd(object):
 
     def bcall(self, *arg):
         """ Set the breakpoint at some function call """
-        (sym, ) = normalize_argv(arg, 1)
+        (sym,) = normalize_argv(arg, 1)
         call = searchcall(sym)
         if "not found" in call:
             print("symbol not found")
@@ -251,7 +251,7 @@ class PwnCmd(object):
 
     def boff(self, *arg):
         """ Set the breakpoint at some offset from base address """
-        (sym, ) = normalize_argv(arg, 1)
+        (sym,) = normalize_argv(arg, 1)
         codebaseaddr, codeend = codeaddr()
         if sym not in self.bpoff:
             self.bpoff.append(sym)
@@ -263,14 +263,14 @@ class PwnCmd(object):
 
     def tboff(self, *arg):
         """ Set temporary breakpoint at some offset from base address """
-        (sym, ) = normalize_argv(arg, 1)
+        (sym,) = normalize_argv(arg, 1)
         codebaseaddr, codeend = codeaddr()
         cmd = "tb*" + hex(codebaseaddr + sym)
         print(gdb.execute(cmd, to_string=True))
 
     def atboff(self, *arg):
         """ Attach and set breakpoints accordingly """
-        (sym, ) = normalize_argv(arg, 1)
+        (sym,) = normalize_argv(arg, 1)
         cmd = "attach " + str(sym)
         print(gdb.execute(cmd, to_string=True))
         x = len(self.prevbp)
@@ -284,7 +284,7 @@ class PwnCmd(object):
 
     def doff(self, *arg):
         """ Delete the breakpoint using breakpoint number at some offset from base address """
-        (sym, ) = normalize_argv(arg, 1)
+        (sym,) = normalize_argv(arg, 1)
         if str(sym) not in self.prevbp:
             return
         codebaseaddr, codeend = codeaddr()

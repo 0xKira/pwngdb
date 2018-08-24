@@ -1,4 +1,3 @@
-from __future__ import with_statement
 import gdb
 import re
 from subprocess import check_output, CalledProcessError, STDOUT

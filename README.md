@@ -4,7 +4,7 @@ GDB for pwn.
 
 ## Install
 
-### install
+### Basic
 	cd ~
 	git clone https://github.com/0xKira/pwngdb.git
 	cp ~/pwngdb/.gdbinit ~

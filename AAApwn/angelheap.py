@@ -1,5 +1,5 @@
 from __future__ import print_function
-#!/usr/bin/env python3
+# !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import gdb
@@ -7,6 +7,7 @@ import subprocess
 import re
 import copy
 import struct
+
 # main_arena
 main_arena = 0
 main_arena_off = 0
@@ -22,16 +23,16 @@ tcache_max_bin = 0
 top = {}
 fastbinsize = 10
 fastbin = []
-fastchunk = []  #save fastchunk address for chunkinfo check
+fastchunk = []  # save fastchunk address for chunkinfo check
 tcache_entry = []
 last_remainder = {}
 unsortbin = []
-smallbin = {}  #{size:bin}
+smallbin = {}  # {size:bin}
 largebin = {}
 system_mem = 0x21000
 
 # chunk recording
-freememoryarea = {}  #using in parse
+freememoryarea = {}  # using in parse
 allocmemoryarea = {}
 freerecord = {}  # using in trace
 
@@ -40,7 +41,7 @@ tracelargebin = True
 inmemalign = False
 inrealloc = False
 print_overlap = True
-DEBUG = True  #debug msg (free and malloc) if you want
+DEBUG = True  # debug msg (free and malloc) if you want
 
 # breakpoints for tracing
 mallocbp = None
@@ -53,7 +54,7 @@ capsize = 0
 word = ""
 arch = ""
 
-#condition
+# condition
 corruptbin = False
 
 
@@ -205,8 +206,7 @@ class Free_Bp_handler(gdb.Breakpoint):
         if (size & 1) == 0:
             prevfreed = True
 
-
-#        overlap,status = check_overlap(chunk["addr"],chunk["size"],freememoryarea)
+        #        overlap,status = check_overlap(chunk["addr"],chunk["size"],freememoryarea)
         overlap, status = check_overlap(chunk["addr"], chunk["size"],
                                         freerecord)
         if overlap and status == "error":
@@ -273,7 +273,7 @@ class Free_Bp_handler(gdb.Breakpoint):
         nextinused = int(
             gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16) & 1
 
-        if nextinused == 0 and prevfreed:  #next chunk is freed
+        if nextinused == 0 and prevfreed:  # next chunk is freed
             if hex(nextchunk["addr"]) not in freerecord:
                 print("\033[31m confuse in nextchunk 0x%x" % nextchunk["addr"])
             else:
@@ -458,21 +458,21 @@ def check_overlap(addr, size, data=None):
         for key, (start, end, chunk) in data.items():
             if (addr >= start and addr < end) or ((addr + size) > start and
                                                   (addr + size) < end) or (
-                                                      (addr < start) and
-                                                      ((addr + size) >= end)):
+                    (addr < start) and
+                    ((addr + size) >= end)):
                 return chunk, "error"
     else:
         for key, (start, end, chunk) in freememoryarea.items():
             if (addr >= start and addr < end) or ((addr + size) > start and
                                                   (addr + size) < end) or (
-                                                      (addr < start) and
-                                                      ((addr + size) >= end)):
+                    (addr < start) and
+                    ((addr + size) >= end)):
                 return chunk, "freed"
         for key, (start, end, chunk) in allocmemoryarea.items():
             if (addr >= start and addr < end) or ((addr + size) > start and
                                                   (addr + size) < end) or (
-                                                      (addr < start) and
-                                                      ((addr + size) >= end)):
+                    (addr < start) and
+                    ((addr + size) >= end)):
                 return chunk, "inused"
     return None, None
 
@@ -486,7 +486,7 @@ def get_top_lastremainder(arena=None):
     chunk = {}
     if capsize == 0:
         arch = getarch()
-    #get top
+    # get top
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(arena) + ").top"
     chunk["addr"] = int(
         gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
@@ -502,7 +502,7 @@ def get_top_lastremainder(arena=None):
         except:
             chunk["memerror"] = "invaild memory"
     top = copy.deepcopy(chunk)
-    #get last_remainder
+    # get last_remainder
     chunk = {}
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(
         arena) + ").last_remainder"
@@ -529,7 +529,7 @@ def get_fast_bin(arena=None):
         arena = main_arena
     fastbin = []
     fastchunk = []
-    #freememoryarea = []
+    # freememoryarea = []
     if capsize == 0:
         arch = getarch()
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(arena) + ").fastbinsY"
@@ -667,11 +667,11 @@ def trace_normal_bin(chunkhead, arena=None):
     if chunkhead["addr"] == 0:  # main_arena not initial
         return None
     chunk = {}
-    cmd = "x/" + word + hex(chunkhead["addr"] + capsize * 2)  #fd
+    cmd = "x/" + word + hex(chunkhead["addr"] + capsize * 2)  # fd
     chunk["addr"] = int(
         gdb.execute(cmd, to_string=True).split(":")[1].strip(),
-        16)  #get fd chunk
-    if (chunk["addr"] == chunkhead["addr"]):  #no chunk in the bin
+        16)  # get fd chunk
+    if (chunk["addr"] == chunkhead["addr"]):  # no chunk in the bin
         if (chunkhead["addr"] > arena):
             return bins
         else:
@@ -699,14 +699,14 @@ def trace_normal_bin(chunkhead, arena=None):
             if bk_fd != chunkhead["addr"]:
                 chunkhead[
                     "memerror"] = "\033[31mdoubly linked list corruption {0} != {1} and \033[36m{2}\033[31m is broken".format(
-                        hex(chunkhead["addr"]), hex(bk_fd),
-                        hex(chunkhead["addr"]))
+                    hex(chunkhead["addr"]), hex(bk_fd),
+                    hex(chunkhead["addr"]))
                 bins.append(copy.deepcopy(chunkhead))
                 return bins
             fd = chunkhead["addr"]
             chunkhead = {}
-            chunkhead["addr"] = bk  #bins addr
-            chunk["addr"] = fd  #first chunk
+            chunkhead["addr"] = bk  # bins addr
+            chunk["addr"] = fd  # first chunk
         except:
             chunkhead["memerror"] = "invaild memory"
             bins.append(copy.deepcopy(chunkhead))
@@ -739,8 +739,8 @@ def trace_normal_bin(chunkhead, arena=None):
                 if chunk["addr"] != fd_bk:
                     chunk[
                         "memerror"] = "\033[31mdoubly linked list corruption {0} != {1} and \033[36m{2}\033[31m or \033[36m{3}\033[31m is broken".format(
-                            hex(chunk["addr"]), hex(fd_bk), hex(fd),
-                            hex(chunk["addr"]))
+                        hex(chunk["addr"]), hex(fd_bk), hex(fd),
+                        hex(chunk["addr"]))
                     bins.append(copy.deepcopy(chunk))
                     break
             except:
@@ -752,7 +752,7 @@ def trace_normal_bin(chunkhead, arena=None):
             freememoryarea[hex(chunk["addr"])] = copy.deepcopy(
                 (chunk["addr"], chunk["addr"] + chunk["size"], chunk))
             bins.append(copy.deepcopy(chunk))
-            cmd = "x/" + word + hex(chunk["addr"] + capsize * 2)  #find next
+            cmd = "x/" + word + hex(chunk["addr"] + capsize * 2)  # find next
             chunk = {}
             chunk["addr"] = fd
     return bins
@@ -1054,11 +1054,11 @@ def freeable(victim):
                     % (chunkaddr, prev_size, prev_size, size))
                 return
         else:
-            if chunkaddr > (2**(capsize * 8) - (size & 0xfffffffffffffff8)):
+            if chunkaddr > (2 ** (capsize * 8) - (size & 0xfffffffffffffff8)):
                 print(
                     "\033[32mFreeable :\033[1;31m False -> Invalid pointer chunkaddr (0x%x) > -size (0x%x)\033[37m"
                     % (chunkaddr,
-                       (2**(capsize * 8) - (size & 0xfffffffffffffff8))))
+                       (2 ** (capsize * 8) - (size & 0xfffffffffffffff8))))
                 return
             if (chunkaddr & (capsize * 2 - 1)) != 0:
                 print(
@@ -1080,7 +1080,7 @@ def freeable(victim):
                 gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
             nextchunk = chunkaddr + size
             status = nextsize & 1
-            if size <= capsize * 0x10:  #fastbin
+            if size <= capsize * 0x10:  # fastbin
                 if nextsize < capsize * 4:
                     print(
                         "\033[32mFreeable :\033[1;31m False -> Chunkaddr (0x%x) invalid next size (size(0x%x) < 0x%x )\033[37m"
@@ -1270,9 +1270,9 @@ def mergeinfo(victim):
                             gdb.execute(
                                 cmd, to_string=True).split(":")[1].strip(), 16)
                         next_status = next_nextsize & 1
-                    if not prev_status:  #if prev chunk is freed
+                    if not prev_status:  # if prev chunk is freed
                         prev_chunk = chunkaddr - prev_size
-                        if next_chunk == top["addr"]:  #if next chunk is top
+                        if next_chunk == top["addr"]:  # if next chunk is top
                             print(
                                 "The chunk will merge into top , top will be \033[1;33m0x%x\033[37m "
                                 % prev_chunk)
@@ -1280,7 +1280,7 @@ def mergeinfo(victim):
                                 "\033[32mUnlink info : \033[1;33m0x%x\033[37m"
                                 % prev_chunk)
                             unlinkable(prev_chunk)
-                        elif not next_status:  #if next chunk is freed
+                        elif not next_status:  # if next chunk is freed
                             print(
                                 "The chunk and \033[1;33m0x%x\033[0m will merge into \033[1;33m0x%x\033[37m"
                                 % (next_chunk, prev_chunk))
@@ -1301,11 +1301,11 @@ def mergeinfo(victim):
                                 % prev_chunk)
                             unlinkable(prev_chunk)
                     else:
-                        if next_chunk == top["addr"]:  #if next chunk is top
+                        if next_chunk == top["addr"]:  # if next chunk is top
                             print(
                                 "The chunk will merge into top , top will be \033[1;34m0x%x\033[37m"
                                 % chunkaddr)
-                        elif not next_status:  #if next chunk is freed
+                        elif not next_status:  # if next chunk is freed
                             print(
                                 "The chunk will merge with \033[1;33m0x%x\033[37m"
                                 % next_chunk)
@@ -1464,7 +1464,7 @@ def putheapinfo(arena=None):
         print("")
     else:
         print("\033[35m %20s:\033[37m 0x%x" % ("unsortbin",
-                                               0))  #no chunk in unsortbin
+                                               0))  # no chunk in unsortbin
     for size, bins in smallbin.items():
         idx = int((int(size, 16) / (capsize * 2))) - 2
         print(
@@ -1692,7 +1692,7 @@ def get_fake_fast(addr, size=None):
             if len(chunk_list) > 0:
                 print(
                     "\033[1;33mfake chunk : \033[1;0m0x{:<12x}\033[1;33m  padding :\033[1;0m {:<8d}".
-                    format(fakechunk[0], fakechunk[1]))
+                        format(fakechunk[0], fakechunk[1]))
     else:
         for i in range(int(fast_max / (capsize * 2) - 1)):
             size = capsize * 2 * 2 + i * capsize * 2
@@ -1702,4 +1702,4 @@ def get_fake_fast(addr, size=None):
                 for fakechunk in chunk_list:
                     print(
                         "\033[1;33mfake chunk :\033[1;0m 0x{:<12x}\033[1;33m  padding :\033[1;0m {:<8d}".
-                        format(fakechunk[0], fakechunk[1]))
+                            format(fakechunk[0], fakechunk[1]))
