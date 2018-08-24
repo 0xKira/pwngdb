@@ -1,17 +1,17 @@
-# Pwngdb
+# pwngdb
 
 GDB for pwn.
 
 ## Install
 
 ### install
-	cd ~/
-	git clone https://github.com/scwuaptx/Pwngdb.git 
-	cp ~/Pwngdb/.gdbinit ~/
+	cd ~
+	git clone https://github.com/0xKira/pwngdb.git
+	cp ~/pwngdb/.gdbinit ~
 
 If you dont want to use gdb-peda , you can modify the gdbinit to remove it.
 
-### Heapinfo 
+### Heapinfo
 
 If you want to use the feature of heapinfo and tracemalloc , you need to install libc debug file (libc6-dbg & libc6-dbg:i386 for debian package) 
 
@@ -23,7 +23,7 @@ If you want to use the feature of heapinfo and tracemalloc , you need to install
 + `heap` : Print the base of heap
 + `got` : Print the Global Offset Table infomation
 + `dyn` : Print the Dynamic section infomation
-+ `findcall` : Find some function call 
++ `findcall` : Find some function call
 + `bcall` : Set the breakpoint at some function call
 + `tls` : Print the thread local storage address
 + `at` : Attach by process name
@@ -39,7 +39,7 @@ If you want to use the feature of heapinfo and tracemalloc , you need to install
 + `arenainfo` : Print some infomation of all arena
 + `chunkinfo`: Print the infomation of chunk
     + chunkinfo (Address of victim)
-+ `chunkptr` : Print the infomation of chunk 
++ `chunkptr` : Print the infomation of chunk
 	+ chunkptr (Address of user ptr)
 + `mergeinfo` : Print the infomation of merge
 	+ mergeinfo (Address of victim)

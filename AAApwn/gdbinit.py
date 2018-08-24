@@ -14,3 +14,5 @@ command_wrapper.angelheap_cmd = command_wrapper.AngelHeapCmd()
 command_wrapper.AngelHeapCmdWrapper()
 for cmd in command_wrapper.angelheap_cmd.commands:
     command_wrapper.Alias(cmd, "angelheap %s" % cmd)
+
+import gdbpwnpwnpwn

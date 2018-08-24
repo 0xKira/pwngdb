@@ -331,8 +331,8 @@ def Update_alloca():
                 (start, start + cursize, chunk))
 
 
-def Malloc_consolidate(
-):  #merge fastbin when malloc a large chunk or free a very large chunk
+def Malloc_consolidate():
+    """ merge fastbin when malloc a large chunk or free a very large chunk """
     global fastbin
     global freerecord
 
