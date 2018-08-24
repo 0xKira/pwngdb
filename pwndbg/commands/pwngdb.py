@@ -23,13 +23,18 @@ import pwndbg.proc
 import pwndbg.search
 from pwndbg.pwngdb import *
 
+
 @pwndbg.commands.Command
 def at(*arg):
     """Automatically attach process by filename."""
     processname = arg[0] if len(arg) > 0 else pwndbg.proc.exe
 
-    try :
-        pidlist = map(int, subprocess.check_output('pidof $(basename {})'.format(processname), shell=True).decode('utf8').split())
+    try:
+        pidlist = map(
+            int,
+            subprocess.check_output(
+                'pidof $(basename {})'.format(processname),
+                shell=True).decode('utf8').split())
 
         for pid in pidlist:
             if pid == pwndbg.proc.pid:
@@ -46,21 +51,24 @@ def at(*arg):
     except:
         print("no such process")
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def libc():
     """ Get libc base """
     print("\033[34m" + "libc : " + "\033[37m" + hex(libcbase()))
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def heap():
     """ Get heapbase """
     heapbase = getheapbase()
-    if heapbase :
+    if heapbase:
         print("\033[34m" + "heapbase : " + "\033[37m" + hex(heapbase))
-    else :
+    else:
         print("heap not found")
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -68,12 +76,14 @@ def ld():
     """ Get ld.so base """
     print("\033[34m" + "ld : " + "\033[37m" + hex(ldbase()))
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def codebase():
     """ Get text base """
     codebs = codeaddr()[0]
     print("\033[34m" + "codebase : " + "\033[37m" + hex(codebs))
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -85,6 +95,7 @@ def tls():
     else:
         print("cannot get tls")
 
+
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def canary():
@@ -94,6 +105,7 @@ def canary():
         print("\033[34m" + "canary : " + "\033[37m" + hex(canary))
     else:
         print("cannot get cannary")
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -107,23 +119,27 @@ def fmtarg(addr):
         print("arch not support")
         return
 
-    start = int(gdb.execute("info register {}".format(reg), to_string=True).split()[1].strip(), 16)
+    start = int(
+        gdb.execute("info register {}".format(reg),
+                    to_string=True).split()[1].strip(), 16)
     idx = (int(addr, 0) - start) / (pwndbg.arch.ptrsize) + 6
     print("The index of format argument : %d" % idx)
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
 def off(symbol):
     """ Calculate the offset of libc """
     symaddr = getoff(symbol)
-    if symaddr == -1 :
+    if symaddr == -1:
         print("symbol not found")
         return
 
-    if type(symbol) is int :
-        print("\033[34m" + hex(symbol)  + " : " + "\033[37m" + hex(symaddr))
-    else :
-        print("\033[34m" + symbol  + " : " + "\033[37m" + hex(symaddr))
+    if type(symbol) is int:
+        print("\033[34m" + hex(symbol) + " : " + "\033[37m" + hex(symaddr))
+    else:
+        print("\033[34m" + symbol + " : " + "\033[37m" + hex(symaddr))
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWhenRunning
@@ -133,7 +149,7 @@ def findsyscall(*arg):
     arch = pwndbg.arch.current
     start, end = codeaddr()
 
-    if arch == "x86-64" :
+    if arch == "x86-64":
         gdb.execute("search -e -x 0f05 {}".format(vmmap))
     elif arch == "i386":
         gdb.execute("search -e -x cd80 {}".format(vmmap))
@@ -141,21 +157,27 @@ def findsyscall(*arg):
         gdb.execute("search -e -x 00df80bc {}".format(vmmap))
     elif arch == "aarch64":
         gdb.execute("search -e -x 010000d4 {}".format(vmmap))
-    else :
+    else:
         print("arch not support")
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWithFile
 def got():
     """ Print the got table """
-    cmd = "objdump -R {} {}".format("--demangle" if iscplus() else "", pwndbg.proc.exe)
+    cmd = "objdump -R {} {}".format("--demangle"
+                                    if iscplus() else "", pwndbg.proc.exe)
     print(subprocess.check_output(cmd, shell=True)[:-2].decode("utf8").strip())
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWithFile
 def dyn():
     """ Print dynamic section """
-    print(subprocess.check_output("readelf -d {}".format(pwndbg.proc.exe), shell=True).decode("utf8").strip())
+    print(subprocess.check_output(
+        "readelf -d {}".format(pwndbg.proc.exe),
+        shell=True).decode("utf8").strip())
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWithFile
@@ -163,6 +185,7 @@ def findcall(symbol):
     """ Find some function call """
     call = searchcall(symbol)
     print(call) if call != -1 else print("symbol not found")
+
 
 @pwndbg.commands.Command
 @pwndbg.commands.OnlyWithFile

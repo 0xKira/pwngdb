@@ -1,4 +1,3 @@
-
 def to_int(val):
     """
     Convert a string to int number
@@ -8,6 +7,7 @@ def to_int(val):
         return int(str(val), 0)
     except:
         return None
+
 
 def normalize_argv(args, size=0):
     """
