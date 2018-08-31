@@ -20,7 +20,7 @@ If you want to use the feature of heapinfo and tracemalloc , you need to install
 + `libc` : Print the base address of libc
 + `ld` : Print the base address of ld
 + `codebase` : Print the base of code segment
-+ `heap` : Print the base of heap
++ `getheap` : Print the base of heap
 + `got` : Print the Global Offset Table infomation
 + `dyn` : Print the Dynamic section infomation
 + `findcall` : Find some function call
@@ -43,7 +43,7 @@ If you want to use the feature of heapinfo and tracemalloc , you need to install
 	+ chunkptr (Address of user ptr)
 + `mergeinfo` : Print the infomation of merge
 	+ mergeinfo (Address of victim)
-+ `printfastbin` : Print some infomation of fastbin
++ `fastbins` : Print some infomation of fastbin
 + `tracemalloc on` : Trace the malloc and free and detect some error .
 	+ You need to run the process first than `tracemalloc on`, it will record all of the malloc and free.
 	+ You can set the `DEBUG` in pwngdb.py , than it will print all of the malloc and free infomation such as the screeshot.
