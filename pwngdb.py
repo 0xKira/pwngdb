@@ -142,7 +142,6 @@ class PwnCmd(object):
                 offset = hex(getoff("&" + v))
                 pad = 36 - len(v) - len(offset) - 2
                 print("\033[34m%s\033[33m(%s)\033[37m%s: \033[37m%s" % (v, offset, ' ' * pad, content))
-            print()
         except:
             print("You need run the program first")
 
@@ -183,11 +182,16 @@ class PwnCmd(object):
         else:
             print("No current process or executable file specified.")
 
-    def rop(self):
+    def rop(self, *arg):
         """ ROPgadget """
+        to_search = ' '.join(arg)
         procname = getprocname()
         if procname:
-            subprocess.call("ROPgadget --binary \"" + procname + "\"", shell=True)
+            if to_search:
+                cmd = 'ROPgadget --binary "{}" | grep "{}"'.format(procname, to_search)
+            else:
+                cmd = 'ROPgadget --binary "{}"'.format(procname)
+            subprocess.call(cmd, shell=True)
         else:
             print("No current process or executable file specified.")
 
