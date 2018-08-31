@@ -15,7 +15,7 @@ word = ""
 arch = ""
 magic_variable = ["__malloc_hook", "__free_hook", "__realloc_hook", "stdin", "stdout", "_IO_list_all",
                   "__after_morecore_hook"]
-magic_function = ["system", "execve", "open", "read", "write", "gets", "setcontext+0x35"]
+magic_function = ["system", "execve", "open", "read", "write", "gets", "mprotect", "setcontext+0x35"]
 
 
 def to_int(val):
@@ -142,6 +142,7 @@ class PwnCmd(object):
                 offset = hex(getoff("&" + v))
                 pad = 36 - len(v) - len(offset) - 2
                 print("\033[34m%s\033[33m(%s)\033[37m%s: \033[37m%s" % (v, offset, ' ' * pad, content))
+            print()
         except:
             print("You need run the program first")
 
