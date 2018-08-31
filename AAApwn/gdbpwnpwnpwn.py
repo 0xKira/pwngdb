@@ -27,23 +27,29 @@ def set_elf_base(filename):
     print("\033[32m" + 'process base address:' + "\033[37m", hex(elf_base))
 
 
+def get_proc_name():
+    proc_name = None
+    try:
+        data = gdb.execute("info proc exe", to_string=True)
+        proc_name = re.search("exe.*", data).group().split("=")[1][2:-1]
+    except:
+        data = gdb.execute("info files", to_string=True)
+        if data:
+            proc_name = re.search('Symbols from "(.*)"', data).group(1)
+    return proc_name
+
+
 def pie_on(filename):
-    # wtf, check_output output is stderr?!
-    sec = check_output(["checksec", filename], stderr=STDOUT).decode()
-    print(sec)
-    # print "checksec command not defined.Do you load peda or other similar libs?"
-    for line in sec.split('\n'):
-        if 'PIE:' in line:
-            if 'enabled' in line.lower():
-                return True
-            return False
+    result = check_output("readelf -h " + "\"" + filename + "\"", shell=True).decode('utf8')
+    if re.search("DYN", result):
+        return True
+    else:
+        return False
 
 
 def init():
-    global filename
-    data = gdb.execute('info files', to_string=True)
-    filename = re.findall("Symbols from \"(.*?)\"", data)[0]
-    global is_pie_on
+    global filename, is_pie_on
+    filename = get_proc_name()
     if pie_on(filename):
         is_pie_on = True
     else:
