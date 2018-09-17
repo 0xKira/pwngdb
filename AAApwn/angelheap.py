@@ -118,15 +118,15 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
                 print("%-40s = 0x%x" % (msg, chunk["addr"] + capsize * 2))
         alloc_mem_area[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"], chunk["addr"] + chunk["size"], chunk))
         if hex(chunk["addr"]) in free_record:
-            freechunktuple = free_record[hex(chunk["addr"])]
-            freechunk = freechunktuple[2]
-            splitchunk = {}
+            free_chunk_tuple = free_record[hex(chunk["addr"])]
+            free_chunk = free_chunk_tuple[2]
+            split_chunk = {}
             del free_record[hex(chunk["addr"])]
-            if chunk["size"] != freechunk["size"]:
-                splitchunk["addr"] = chunk["addr"] + chunk["size"]
-                splitchunk["size"] = freechunk["size"] - chunk["size"]
-                free_record[hex(splitchunk["addr"])] = copy.deepcopy(
-                    (splitchunk["addr"], splitchunk["addr"] + splitchunk["size"], splitchunk))
+            if chunk["size"] != free_chunk["size"]:
+                split_chunk["addr"] = chunk["addr"] + chunk["size"]
+                split_chunk["size"] = free_chunk["size"] - chunk["size"]
+                free_record[hex(split_chunk["addr"])] = copy.deepcopy(
+                    (split_chunk["addr"], split_chunk["addr"] + split_chunk["size"], split_chunk))
         if self.arg >= 128 * capsize:
             Malloc_consolidate()
 
@@ -190,7 +190,6 @@ class Free_Bp_handler(gdb.Breakpoint):
         if (size & 1) == 0:
             prev_freed = True
 
-        # overlap,status = check_overlap(chunk["addr"],chunk["size"],freememoryarea)
         overlap, status = check_overlap(chunk["addr"], chunk["size"], free_record)
         if overlap and status == "error":
             if DEBUG:
@@ -229,8 +228,7 @@ class Free_Bp_handler(gdb.Breakpoint):
                 prev_chunk["size"] += chunk["size"]
                 del free_record[hex(prev_chunk["addr"])]
 
-        next_chunk = {}
-        next_chunk["addr"] = chunk["addr"] + chunk["size"]
+        next_chunk = {"addr": chunk["addr"] + chunk["size"]}
 
         if next_chunk["addr"] == top["addr"]:
             if hex(chunk["addr"]) in alloc_mem_area:
@@ -244,15 +242,15 @@ class Free_Bp_handler(gdb.Breakpoint):
         next_chunk["size"] = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16) & 0xfffffffffffffff8
         cmd = "x/" + word + hex(next_chunk["addr"] + next_chunk["size"] +
                                 capsize)
-        next_inused = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16) & 1
+        next_inuse = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16) & 1
 
-        if next_inused == 0 and prev_freed:  # next chunk is freed
+        if next_inuse == 0 and prev_freed:  # next chunk is freed
             if hex(next_chunk["addr"]) not in free_record:
                 print("\033[31m confuse in next_chunk 0x%x" % next_chunk["addr"])
             else:
                 prev_chunk["size"] += next_chunk["size"]
                 del free_record[hex(next_chunk["addr"])]
-        if next_inused == 0 and not prev_freed:
+        if next_inuse == 0 and not prev_freed:
             if hex(next_chunk["addr"]) not in free_record:
                 print("\033[31m confuse in next_chunk 0x%x" % next_chunk["addr"])
             else:
