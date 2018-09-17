@@ -93,11 +93,10 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
             get_arch()
         if arch == "x86-64":
             value = int(self.return_value)
-            chunk["addr"] = value - capsize * 2
         else:
             cmd = "info register $eax"
             value = int(gdb.execute(cmd, to_string=True).split()[1].strip(), 16)
-            chunk["addr"] = value - capsize * 2
+        chunk["addr"] = value - capsize * 2
         if value == 0:
             return False
 
@@ -122,7 +121,7 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
                 print("%-40s = 0x%x" % (msg, chunk["addr"] + capsize * 2))
         alloc_mem_area[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"], chunk["addr"] + chunk["size"], chunk))
         backtrace = gdb.execute('bt', to_string=True)
-        all_record.append([chunk["addr"], chunk["addr"] + chunk["size"], '\n'.join(backtrace.split('\n')[:-3])])
+        all_record.append(['malloc', chunk["addr"], chunk["addr"] + chunk["size"], '\n'.join(backtrace.split('\n')[:-3])])
         if hex(chunk["addr"]) in free_record:
             free_chunk_tuple = free_record[hex(chunk["addr"])]
             free_chunk = free_chunk_tuple[2]
@@ -143,10 +142,12 @@ class Malloc_Bp_handler(gdb.Breakpoint):
         if len(arch) == 0:
             get_arch()
         if arch == "x86-64":
-            reg = "$rsi"
+            reg = "$rdi"
             arg = int(gdb.execute("info register " + reg, to_string=True).split()[1].strip(), 16)
         else:
             # for _int_malloc in x86's glibc (unbuntu 14.04 & 16.04), size is stored in edx
+            # fbi warning!
+            # to be changed here!
             reg = "$edx"
             arg = int(gdb.execute("info register " + reg, to_string=True).split()[1].strip(), 16)
         Malloc_bp_ret(arg)
@@ -176,13 +177,14 @@ class Free_Bp_handler(gdb.Breakpoint):
         if len(arch) == 0:
             get_arch()
         if arch == "x86-64":
-            reg = "$rsi"
-            result = int(gdb.execute("info register " + reg, to_string=True).split()[1].strip(), 16) + 0x10
+            reg = "$rdi"
+            result = int(gdb.execute("info register " + reg, to_string=True).split()[1].strip(), 16)
         else:
             # for _int_free in x86's glibc (unbuntu 14.04 & 16.04), chunk address is stored in edx
+            # fbi warning!
+            # to be changed here!
             reg = "$edx"
-            result = int(
-                gdb.execute("info register " + reg, to_string=True).split()[1].strip(), 16) + 0x8
+            result = int(gdb.execute("info register " + reg, to_string=True).split()[1].strip(), 16)
         chunk = {}
         if in_memalign or in_realloc:
             Update_alloca()
@@ -196,6 +198,9 @@ class Free_Bp_handler(gdb.Breakpoint):
         chunk["size"] = size & 0xfffffffffffffff8
         if (size & 1) == 0:
             prev_freed = True
+
+        backtrace = gdb.execute('bt', to_string=True)
+        all_record.append(['free', chunk["addr"], chunk["addr"] + chunk["size"], '\n'.join(backtrace.split('\n')[:-3])])
 
         overlap, status = check_overlap(chunk["addr"], chunk["size"], free_record)
         if overlap and status == "error":
@@ -271,8 +276,6 @@ class Free_Bp_handler(gdb.Breakpoint):
         if DEBUG:
             print("")
         free_record[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"], chunk["addr"] + chunk["size"], chunk))
-        backtrace = gdb.execute('bt', to_string=True)
-        all_record.append([chunk["addr"], chunk["addr"] + chunk["size"], '\n'.join(backtrace.split('\n')[:-3])])
         if hex(chunk["addr"]) in alloc_mem_area:
             del alloc_mem_area[hex(chunk["addr"])]
         if chunk["size"] > 65536:
@@ -857,10 +860,10 @@ def trace_malloc():
     global memalign_bp
     global realloc_bp
 
-    malloc_bp = Malloc_Bp_handler("*" + "_int_malloc")
-    free_bp = Free_Bp_handler("*" + "_int_free")
-    memalign_bp = Memalign_Bp_handler("*" + "_int_memalign")
-    realloc_bp = Realloc_Bp_handler("*" + "_int_realloc")
+    malloc_bp = Malloc_Bp_handler("*" + "__libc_malloc")
+    free_bp = Free_Bp_handler("*" + "__libc_free")
+    memalign_bp = Memalign_Bp_handler("*" + "__libc_memalign")
+    realloc_bp = Realloc_Bp_handler("*" + "__libc_realloc")
     if not get_heap_info():
         print("Can't find heap info")
         return
@@ -1494,19 +1497,15 @@ def get_fake_fast(addr, size=None):
 
 
 def check_heap(addr, print_all=False):
-    print(print_all)
-    print('checkheap invoked!')
     addr = int(gdb.parse_and_eval(addr).cast(gdb.lookup_type('long')))
     count = 0
-    for record in all_record:
-        print(hex(record[0]), hex(record[1]))
-        if record[0] <= addr <= record[1]:
-            print('=======================================================')
-            print('found one !')
-            print('start:', hex(record[0]), 'end:', hex(record[1]))
-            print('backtrace:')
-            print(record[2])
+    for record in reversed(all_record):
+        if record[1] <= addr <= record[2]:
             if not print_all:
                 count += 1
-                if count > 5:
+                if count > 4:
                     break
+            print('==================================={}==================================='.format(record[0]))
+            print('start:', hex(record[1]), 'end:', hex(record[2]))
+            print('backtrace:')
+            print(record[3])
