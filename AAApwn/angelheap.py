@@ -33,6 +33,7 @@ system_mem = 0x21000
 free_mem_area = {}  # using in parse
 alloc_mem_area = {}
 free_record = {}  # using in trace
+all_record = []  # all malloc free record trace
 
 # setting for tracing memory allocation
 trace_largebin = True
@@ -67,10 +68,12 @@ def u64(data, fmt="<Q"):
 def init_angelheap():
     global alloc_mem_area
     global free_record
+    global all_record
 
     dis_trace_malloc()
     alloc_mem_area = {}
     free_record = {}
+    all_record = []
 
 
 class Malloc_bp_ret(gdb.FinishBreakpoint):
@@ -84,6 +87,7 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
 
     def stop(self):
         global arch
+        global all_record
         chunk = {}
         if len(arch) == 0:
             get_arch()
@@ -117,6 +121,8 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
                 msg = "\033[33mmalloc(0x%x)\033[37m" % self.arg
                 print("%-40s = 0x%x" % (msg, chunk["addr"] + capsize * 2))
         alloc_mem_area[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"], chunk["addr"] + chunk["size"], chunk))
+        backtrace = gdb.execute('bt', to_string=True)
+        all_record.append([chunk["addr"], chunk["addr"] + chunk["size"], '\n'.join(backtrace.split('\n')[:-3])])
         if hex(chunk["addr"]) in free_record:
             free_chunk_tuple = free_record[hex(chunk["addr"])]
             free_chunk = free_chunk_tuple[2]
@@ -164,6 +170,7 @@ class Free_Bp_handler(gdb.Breakpoint):
         global in_memalign
         global in_realloc
         global arch
+        global all_record
         get_top_lastremainder()
 
         if len(arch) == 0:
@@ -264,6 +271,8 @@ class Free_Bp_handler(gdb.Breakpoint):
         if DEBUG:
             print("")
         free_record[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"], chunk["addr"] + chunk["size"], chunk))
+        backtrace = gdb.execute('bt', to_string=True)
+        all_record.append([chunk["addr"], chunk["addr"] + chunk["size"], '\n'.join(backtrace.split('\n')[:-3])])
         if hex(chunk["addr"]) in alloc_mem_area:
             del alloc_mem_area[hex(chunk["addr"])]
         if chunk["size"] > 65536:
@@ -1482,3 +1491,22 @@ def get_fake_fast(addr, size=None):
                 for fakechunk in chunk_list:
                     print("\033[1;33mfake chunk :\033[1;0m 0x{:<12x}\033[1;33m  padding :\033[1;0m {:<8d}".format(
                         fakechunk[0], fakechunk[1]))
+
+
+def check_heap(addr, print_all=False):
+    print(print_all)
+    print('checkheap invoked!')
+    addr = int(gdb.parse_and_eval(addr).cast(gdb.lookup_type('long')))
+    count = 0
+    for record in all_record:
+        print(hex(record[0]), hex(record[1]))
+        if record[0] <= addr <= record[1]:
+            print('=======================================================')
+            print('found one !')
+            print('start:', hex(record[0]), 'end:', hex(record[1]))
+            print('backtrace:')
+            print(record[2])
+            if not print_all:
+                count += 1
+                if count > 5:
+                    break

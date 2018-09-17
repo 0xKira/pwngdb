@@ -78,6 +78,13 @@ class AngelHeapCmd(object):
         (addr, size) = normalize_argv(arg, 2)
         angelheap.get_fake_fast(addr, size)
 
+    def checkheap(self, *arg):
+        """ Given an address and return the information of its heap """
+        if len(arg) > 1:
+            angelheap.check_heap(arg[0], arg[1] == 'all')
+        else:
+            angelheap.check_heap(arg[0])
+
 
 class AngelHeapCmdWrapper(gdb.Command):
     """ angelheap command wrapper """
