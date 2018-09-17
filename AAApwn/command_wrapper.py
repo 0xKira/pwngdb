@@ -21,7 +21,7 @@ class AngelHeapCmd(object):
                 angelheap.trace_malloc()
             except:
                 print("Can't create Breakpoint")
-        else:
+        elif option == "off":
             angelheap.dis_trace_malloc()
 
     def heapinfo(self, *arg):
