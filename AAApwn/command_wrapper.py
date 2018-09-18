@@ -81,7 +81,7 @@ class AngelHeapCmd(object):
     def checkheap(self, *arg):
         """ Given an address and return the information of its heap """
         if len(arg) > 1:
-            angelheap.check_heap(arg[0], arg[1] == 'all')
+            angelheap.check_heap(arg[0], arg[1])
         else:
             angelheap.check_heap(arg[0])
 

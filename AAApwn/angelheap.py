@@ -121,7 +121,8 @@ class Malloc_bp_ret(gdb.FinishBreakpoint):
                 print("%-40s = 0x%x" % (msg, chunk["addr"] + capsize * 2))
         alloc_mem_area[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"], chunk["addr"] + chunk["size"], chunk))
         backtrace = gdb.execute('bt', to_string=True)
-        all_record.append(['malloc', chunk["addr"], chunk["addr"] + chunk["size"], '\n'.join(backtrace.split('\n')[:-3])])
+        all_record.append(
+            ['malloc', chunk["addr"], chunk["addr"] + chunk["size"], '\n'.join(backtrace.split('\n')[:-3])])
         if hex(chunk["addr"]) in free_record:
             free_chunk_tuple = free_record[hex(chunk["addr"])]
             free_chunk = free_chunk_tuple[2]
@@ -921,7 +922,7 @@ def unlinkable(chunkaddr, fd=None, bk=None):
         if chunk_size != next_prev_size:
             print(
                 "\033[32mUnlinkable :\033[1;31m False (corrupted size chunksize(0x%x) != prev_size(0x%x)) ) \033[37m " % (
-                    chunk_size, next_prev_size))
+                chunk_size, next_prev_size))
         elif (chunkaddr == fd_bk) and (chunkaddr == bk_fd):
             print("\033[32mUnlinkable :\033[1;33m True\033[37m")
             print("\033[32mResult of unlink :\033[37m")
@@ -1496,16 +1497,24 @@ def get_fake_fast(addr, size=None):
                         fakechunk[0], fakechunk[1]))
 
 
-def check_heap(addr, print_all=False):
+def check_heap(addr, print_num=4):
     addr = int(gdb.parse_and_eval(addr).cast(gdb.lookup_type('long')))
+    if print_num == 'all':
+        print_num = 0xffff
+    print_num = int(print_num)
     count = 0
     for record in reversed(all_record):
         if record[1] <= addr <= record[2]:
-            if not print_all:
-                count += 1
-                if count > 4:
-                    break
-            print('==================================={}==================================='.format(record[0]))
-            print('start:', hex(record[1]), 'end:', hex(record[2]))
-            print('backtrace:')
+            count += 1
+            if count > print_num:
+                break
+            if record[0] == "malloc":
+                print('================================== \033[1;32m', end='')  # green
+            else:
+                print('================================== \033[1;31m', end='')  # red
+            print('{}\033[0;37m =================================='.format(record[0]))
+            print("\033[32m" + 'start:' + "\033[37m", hex(record[1]))
+            print("\033[32m" + 'end:  ' + "\033[37m", hex(record[2]))
+            # print('start:', hex(record[1]), 'end:', hex(record[2]))
+            print('\033[34mbacktrace:\033[37m')
             print(record[3])
