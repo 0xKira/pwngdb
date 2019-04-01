@@ -567,7 +567,8 @@ def get_curthread():
 
 def get_all_threads():
     cmd = "info threads"
-    all_threads = [int(line.split()[0].strip()) for line in gdb.execute(cmd, to_string=True).replace("*", "").split("\n")[1:-1]]
+    all_threads = [int(line.split()[0].strip()) for line in
+                   gdb.execute(cmd, to_string=True).replace("*", "").split("\n")[1:-1]]
     return all_threads
 
 
@@ -973,7 +974,7 @@ def unlinkable(chunkaddr, fd=None, bk=None):
         if chunk_size != next_prev_size:
             print(
                 "\033[32mUnlinkable :\033[1;31m False (corrupted size chunksize(0x%x) != prev_size(0x%x)) ) \033[37m " % (
-                chunk_size, next_prev_size))
+                    chunk_size, next_prev_size))
         elif (chunkaddr == fd_bk) and (chunkaddr == bk_fd):
             print("\033[32mUnlinkable :\033[1;33m True\033[37m")
             print("\033[32mResult of unlink :\033[37m")
@@ -1094,7 +1095,8 @@ def freeable(victim):
                     prev_chunk_size = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(),
                                           16) & 0xfffffffffffffff8
                     if prev_size != prev_chunk_size:
-                        print("\033[32mFreeable :\033[1;31m False -> p->size(0x%x) != next->prevsize(0x%x) \033[37m" % (prev_chunk_size, prev_size))
+                        print("\033[32mFreeable :\033[1;31m False -> p->size(0x%x) != next->prevsize(0x%x) \033[37m" % (
+                        prev_chunk_size, prev_size))
                         return
 
                 if len(unsortbin) > 0:
