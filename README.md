@@ -5,11 +5,11 @@ GDB for pwn.
 ## TODO
 
 
-* [ ]  magic中加入one_gadget
+* [x]  magic中加入one_gadget
 * [ ]  完善trace malloc free
 * [ ]  heap diff
 * [ ]  添加新的cmd `xx`，可以根据基址查看内存
-* [ ]  ra 如果没有指定参数也未使用过，使用当前gdb指定的file
+* [x]  ra 如果没有指定参数也未使用过，使用当前gdb指定的file
 
 ## Install
 

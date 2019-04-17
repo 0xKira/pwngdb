@@ -2,7 +2,7 @@ from __future__ import print_function
 import gdb
 import subprocess
 import re
-from os import path
+from os import path, system
 
 directory, file = path.split(__file__)
 directory = path.expanduser(directory)
@@ -101,9 +101,9 @@ class PwnCmd(object):
             print("Not found the symbol")
         else:
             if type(sym) is int:
-                print("\033[34m" + hex(sym) + ":" + "\033[37m" + hex(symaddr))
+                print("\033[34m" + hex(sym) + ": " + "\033[37m" + hex(symaddr))
             else:
-                print("\033[34m" + sym + ":" + "\033[37m" + hex(symaddr))
+                print("\033[34m" + sym + ": " + "\033[37m" + hex(symaddr))
 
     def fp(self, *arg):
         """ show FILE structure """
@@ -134,14 +134,20 @@ class PwnCmd(object):
         try:
             print("========== function ==========")
             for f in magic_function:
-                print("\033[34m" + f + ":" + "\033[33m" + hex(getoff(f)))
-            print("\033[37m========== variables ==========")
+                print("\033[34m%s\033[33m(%s)\033[37m" % (f, hex(getoff(f))))
+            print("========== variables ==========")
             for v in magic_variable:
                 cmd = "x/" + word + "&" + v
                 content = gdb.execute(cmd, to_string=True).split(":")[1].strip()
                 offset = hex(getoff("&" + v))
                 pad = 36 - len(v) - len(offset) - 2
                 print("\033[34m%s\033[33m(%s)\033[37m%s: \033[37m%s" % (v, offset, ' ' * pad, content))
+            print("========== one gadget ==========")
+            infomap = procmap()
+            data = re.findall('.*libc.*\.so', infomap)
+            if data:
+                libc_addr = data[0].split()[-1]
+                system("one_gadget {}".format(libc_addr))
         except:
             print("You need run the program first")
 
@@ -416,7 +422,7 @@ def getprocname(relative=False):
 
 def libcbase():
     infomap = procmap()
-    data = re.search(".*/lib/x86_64-linux-gnu/libc-.*\.so", infomap)
+    data = re.search(".*libc.*\.so", infomap)
     if data:
         libcaddr = data.group().split("-")[0]
         gdb.execute("set $libc=%s" % hex(int(libcaddr, 16)))
