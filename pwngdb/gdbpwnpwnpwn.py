@@ -6,7 +6,7 @@ elf_base = 0
 elf_base_old = 0
 pid = 0
 is_pie_on = False
-filename = None
+proc_name = None
 
 
 def set_current_pid():
@@ -18,13 +18,13 @@ def set_current_pid():
     return False
 
 
-def set_elf_base(filename):
+def set_elf_base(proc_name):
     global elf_base, elf_base_old
     elf_base_old = elf_base
-    patt = re.compile(r'.*?([0-9a-f]+)\-[0-9a-f]+\s+r-xp.*?%s' % filename)
+    patt = re.compile(r'.*?([0-9a-f]+)\-[0-9a-f]+\s+r-xp.*?%s' % proc_name)
     vmmap = check_output(['cat', '/proc/%s/maps' % pid]).decode()
     elf_base = int(patt.findall(vmmap)[0], 16)
-    print("\033[32m" + 'process base address:' + "\033[37m", hex(elf_base))
+    print("\033[32m" + 'process base:' + "\033[37m", hex(elf_base))
 
 
 def get_proc_name():
@@ -39,8 +39,8 @@ def get_proc_name():
     return proc_name
 
 
-def pie_on(filename):
-    result = check_output("readelf -h " + "\"" + filename + "\"", shell=True).decode('utf8')
+def pie_on(proc_name):
+    result = check_output("readelf -h " + "\"" + proc_name + "\"", shell=True).decode('utf8')
     if re.search("DYN", result):
         return True
     else:
@@ -48,9 +48,9 @@ def pie_on(filename):
 
 
 def init():
-    global filename, is_pie_on
-    filename = get_proc_name()
-    if pie_on(filename):
+    global proc_name, is_pie_on
+    proc_name = get_proc_name()
+    if pie_on(proc_name):
         is_pie_on = True
     else:
         is_pie_on = False
@@ -63,27 +63,21 @@ class ReattachCommand(gdb.Command):
     """
 
     def __init__(self):
-        self.lastFn = ''
         super(ReattachCommand, self).__init__("ra", gdb.COMMAND_SUPPORT, gdb.COMPLETE_FILENAME)
 
     def invoke(self, arg, from_tty):
-        args = arg.split(' ')
-        fn = args[0].strip()
-        if len(fn) > 0:
-            global filename
-            filename = self.lastFn = fn
+        global proc_name, pid
 
-        if len(self.lastFn) == 0:
-            print(
-                'You have to specify the name of the process (for pidof) for the first time (it will be cached for later)')
+        proc_name = get_proc_name()
+        if not proc_name:
+            print('Please specify program name first!')
             return
-
-        global pid
         try:
-            pid = check_output(["pidof", self.lastFn]).strip()
+            pid = check_output(["pidof", proc_name]).strip()
         except CalledProcessError as e:
             if e.returncode == 1:
                 print('Process not found :(')
+                return
             else:
                 raise e
 
@@ -91,9 +85,9 @@ class ReattachCommand(gdb.Command):
         gdb.execute('attach ' + pid)
         gdb.execute('getheap')
         global is_pie_on
-        if pie_on(self.lastFn):
+        if pie_on(proc_name):
             is_pie_on = True
-            set_elf_base(self.lastFn)
+            set_elf_base(proc_name)
             # if existing some breakpoints, delete them and set new breakpoints
             if gdb.breakpoints():
                 breakpoints = []
@@ -123,7 +117,7 @@ class PieBreak(gdb.Command):
             return
         if is_pie_on:
             set_current_pid()
-            set_elf_base(filename)
+            set_elf_base(proc_name)
             gdb.execute('b *%d' % (int(gdb.parse_and_eval(offset).cast(gdb.lookup_type('long'))) + elf_base))
         else:
             gdb.execute('b *%d' % (gdb.parse_and_eval(offset)))
