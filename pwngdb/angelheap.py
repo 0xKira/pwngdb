@@ -36,6 +36,7 @@ free_mem_area = {}  # using in parse
 alloc_mem_area = {}
 free_record = {}  # using in trace
 all_record = []  # all malloc free record trace
+                 # struct: malloc/free, start_addr, end_addr
 
 # setting for tracing memory allocation
 trace_largebin = True
@@ -1572,8 +1573,10 @@ def check_heap(addr, print_num=4):
         print_num = 0xffff
     print_num = int(print_num)
     count = 0
+    found = False
     for record in reversed(all_record):
         if record[1] <= addr <= record[2]:
+            found = True
             count += 1
             if count > print_num:
                 break
@@ -1586,3 +1589,5 @@ def check_heap(addr, print_num=4):
             print("\033[32m" + 'end:  ' + "\033[37m", hex(record[2]))
             print('\033[34mbacktrace:\033[37m')
             print(record[3])
+    if not found:
+        print('\033[1;31mNot found!\033[0;37m')  # red
