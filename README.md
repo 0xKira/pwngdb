@@ -74,28 +74,28 @@ If you want to use the feature of heapinfo and tracemalloc , you need to install
 
 + Chunkinfo
 
-![chunkinfo](assets/gtQuIsL.png)
+  ![chunkinfo](assets/gtQuIsL.png)
 + Mergeinfo
 
-![chunkinfo](assets/TjWkzGc.png)
+  ![chunkinfo](assets/TjWkzGc.png)
 + Heapinfo
 
-![xhTc8Gv](assets/xhTc8Gv.png)
+  ![xhTc8Gv](assets/xhTc8Gv.png)
 + Heapinfoall
 
-![heapinfoall](assets/kRMXPZz.png)
+  ![heapinfoall](assets/kRMXPZz.png)
 
 + parseheap
 
-![R7goaLF](assets/R7goaLF.png)
+  ![R7goaLF](assets/R7goaLF.png)
 
 + tracemalloc
 
-![trace](assets/7UHqiwX.png)
+  ![trace](assets/7UHqiwX.png)
 
 + magic
 
-![magic](assets/magic.png)
+  ![magic](assets/magic.png)
 
 - checkheap
 
