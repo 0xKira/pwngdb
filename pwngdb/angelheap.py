@@ -1572,7 +1572,6 @@ def check_heap(addr, print_num=4):
         print_num = 0xffff
     print_num = int(print_num)
     count = 0
-    print(all_record)
     for record in reversed(all_record):
         if record[1] <= addr <= record[2]:
             count += 1

@@ -1,6 +1,6 @@
 source ~/peda/peda.py
 source ~/pwngdb/pwngdb.py
-source ~/pwngdb/AAApwn/gdbinit.py
+source ~/pwngdb/pwngdb/gdbinit.py
 
 define hook-run
 python
