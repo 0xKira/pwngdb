@@ -18,13 +18,14 @@ def set_current_pid():
     return False
 
 
-def set_elf_base(proc_name):
+def set_elf_base(proc_name, output=True):
     global elf_base, elf_base_old
     elf_base_old = elf_base
     patt = re.compile(r'.*?([0-9a-f]+)\-[0-9a-f]+\s+r-xp.*?%s' % proc_name)
     vmmap = check_output(['cat', '/proc/%s/maps' % pid]).decode()
     elf_base = int(patt.findall(vmmap)[0], 16)
-    print("\033[32m" + 'process base:' + "\033[37m", hex(elf_base))
+    if output:
+        print("\033[32m" + 'process base:' + "\033[37m", hex(elf_base))
 
 
 def get_proc_name():
@@ -127,5 +128,25 @@ class PieBreak(gdb.Command):
             gdb.execute('b *%d' % (gdb.parse_and_eval(offset)))
 
 
+class PieExamineMem(gdb.Command):
+    """ Examine memory according to the offset to the elf base address """
+
+    def __init__(self):
+        super(PieExamineMem, self).__init__("xx", gdb.COMMAND_SUPPORT, gdb.COMPLETE_EXPRESSION)
+
+    def invoke(self, arg, from_tty):
+        offset = arg.split(' ')[0].strip()
+        if len(offset) == 0:
+            print('I need an memory location:(')
+            return
+        if is_pie_on:
+            set_current_pid()
+            set_elf_base(proc_name, False)
+            gdb.execute('x{}+0x{:x}'.format(arg.rstrip(), elf_base))
+        else:
+            gdb.execute('x' + arg)
+
+
 ReattachCommand()
 PieBreak()
+PieExamineMem()

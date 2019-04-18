@@ -8,7 +8,7 @@ GDB for pwn.
 * [x]  magic中加入one_gadget
 * [x]  初步完善trace malloc free
 * [ ]  heap diff
-* [ ]  添加新的cmd `xx`，可以根据基址查看内存
+* [x]  添加新的cmd `xx`，可以根据基址查看内存
 * [x]  ra 如果没有指定参数也未使用过，使用当前gdb指定的file
 
 ## Install
@@ -33,7 +33,7 @@ If you want to use the feature of heapinfo and tracemalloc , you need to install
 + `tls` : Print the thread local storage address
 + `ra`: Reattach to the process which specify by GDB file
 + `bb`: Break according to the offset to the elf base address
-+ `xx`: TBD
++ `xx`: Examine memory according to the offset to the elf base address
 + `got` : Print the Global Offset Table infomation
 + `dyn` : Print the Dynamic section infomation
 + `findcall` : Find some function call
