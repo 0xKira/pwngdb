@@ -146,13 +146,12 @@ class Malloc_Bp_handler(gdb.Breakpoint):
             get_arch()
         if arch == "x86-64":
             reg = "$rdi"
-            arg = int(gdb.execute("info register " + reg, to_string=True).split()[1].strip(), 16)
         else:
             # for _int_malloc in x86's glibc (unbuntu 14.04 & 16.04), size is stored in edx
             # fbi warning!
             # to be changed here!
             reg = "$edx"
-            arg = int(gdb.execute("info register " + reg, to_string=True).split()[1].strip(), 16)
+        arg = int(gdb.execute("info register " + reg, to_string=True).split()[1].strip(), 16)
         Malloc_bp_ret(arg)
         return False
 
@@ -1568,11 +1567,12 @@ def get_fake_fast(addr, size=None):
 
 
 def check_heap(addr, print_num=4):
-    addr = int(gdb.parse_and_eval(addr).cast(gdb.lookup_type('long')))
+    addr = int(addr.cast(gdb.lookup_type('long')))
     if print_num == 'all':
         print_num = 0xffff
     print_num = int(print_num)
     count = 0
+    print(all_record)
     for record in reversed(all_record):
         if record[1] <= addr <= record[2]:
             count += 1
@@ -1585,6 +1585,5 @@ def check_heap(addr, print_num=4):
             print('{}\033[0;37m =================================='.format(record[0]))
             print("\033[32m" + 'start:' + "\033[37m", hex(record[1]))
             print("\033[32m" + 'end:  ' + "\033[37m", hex(record[2]))
-            # print('start:', hex(record[1]), 'end:', hex(record[2]))
             print('\033[34mbacktrace:\033[37m')
             print(record[3])

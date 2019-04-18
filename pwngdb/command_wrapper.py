@@ -1,7 +1,7 @@
 import gdb
 import angelheap
 
-from utils import *
+from utils import normalize_argv
 
 angelheap_cmd = None
 
