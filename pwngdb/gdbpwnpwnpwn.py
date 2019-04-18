@@ -68,7 +68,11 @@ class ReattachCommand(gdb.Command):
     def invoke(self, arg, from_tty):
         global proc_name, pid
 
-        proc_name = get_proc_name()
+        fn = arg.split(' ')[0].strip()
+        if len(fn) > 0:
+            proc_name = fn
+        else:
+            proc_name = get_proc_name()
         if not proc_name:
             print('Please specify program name first!')
             return
