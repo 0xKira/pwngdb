@@ -66,6 +66,10 @@ class AngelHeapCmd(object):
         """ Print the fastbin """
         angelheap.putfastbin()
 
+    def unsorted(self):
+        """ Print the unsorted bin """
+        angelheap.put_unsorted()
+
     def inused(self):
         """ Print the inuse chunk """
         angelheap.putinused()

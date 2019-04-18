@@ -1337,21 +1337,13 @@ def put_tcache():
     return True
 
 
-def putheapinfo(arena=None):
-    if capsize == 0:
-        get_arch()
-    if not putfastbin(arena):
-        return
-    if "memerror" in top:
-        print("\033[35m %20s:\033[31m 0x%x \033[33m(size : 0x%x)\033[31m (%s)\033[37m " % (
-            "top", top["addr"], top["size"], top["memerror"]))
+def put_unsorted(pad=False):
+    if pad:
+        s = 'unsortbin'.rjust(21, ' ')
     else:
-        print("\033[35m %20s:\033[34m 0x%x \033[33m(size : 0x%x)\033[37m " % ("top", top["addr"], top["size"]))
-
-    print("\033[35m %20s:\033[34m 0x%x \033[33m(size : 0x%x)\033[37m " % (
-        "last_remainder", last_remainder["addr"], last_remainder["size"]))
+        s = 'unsortbin'
+    print("\033[35m%s:\033[37m " % s, end="")
     if unsortbin and len(unsortbin) > 0:
-        print("\033[35m %20s:\033[37m " % "unsortbin", end="")
         for chunk in unsortbin:
             if "memerror" in chunk:
                 print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"], chunk["memerror"]), end="")
@@ -1366,7 +1358,24 @@ def putheapinfo(arena=None):
                 print(" <--> ", end="")
         print("")
     else:
-        print("\033[35m %20s:\033[37m 0x%x" % ("unsortbin", 0))  # no chunk in unsortbin
+        print(0)  # no chunk in unsortbin
+
+
+def putheapinfo(arena=None):
+    if capsize == 0:
+        get_arch()
+    if not putfastbin(arena):
+        return
+    if "memerror" in top:
+        print("\033[35m %20s:\033[31m 0x%x \033[33m(size : 0x%x)\033[31m (%s)\033[37m " % (
+            "top", top["addr"], top["size"], top["memerror"]))
+    else:
+        print("\033[35m %20s:\033[34m 0x%x \033[33m(size : 0x%x)\033[37m " % ("top", top["addr"], top["size"]))
+
+    print("\033[35m %20s:\033[34m 0x%x \033[33m(size : 0x%x)\033[37m " % (
+        "last_remainder", last_remainder["addr"], last_remainder["size"]))
+    put_unsorted(True)
+
     for size, bins in smallbin.items():
         idx = int((int(size, 16) / (capsize * 2))) - 2
         print("\033[33m(0x%03x)  %s[%2d]:\033[37m " % (int(size, 16), "smallbin", idx), end="")
