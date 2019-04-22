@@ -67,7 +67,7 @@ class ReattachCommand(gdb.Command):
         super(ReattachCommand, self).__init__("ra", gdb.COMMAND_SUPPORT, gdb.COMPLETE_FILENAME)
 
     def invoke(self, arg, from_tty):
-        global proc_name, pid
+        global proc_name, pid, is_pie_on
 
         fn = arg.split(' ')[0].strip()
         if len(fn) > 0:
@@ -89,8 +89,7 @@ class ReattachCommand(gdb.Command):
         pid = pid.decode().split(' ')[0]
         gdb.execute('attach ' + pid)
         gdb.execute('getheap')
-        global is_pie_on
-        if pie_on(proc_name):
+        if is_pie_on:
             is_pie_on = True
             set_elf_base(proc_name)
             # if existing some breakpoints, delete them and set new breakpoints
