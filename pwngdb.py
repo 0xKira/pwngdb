@@ -93,8 +93,7 @@ class PwnCmd(object):
         getfmtarg(addr)
 
     def off(self, *arg):
-        """ Calculate the offset of libc """
-        # (sym,)= normalize_argv(arg,1)
+        """ Calculate offset to libc """
         (sym,) = normalize_argv(arg, 1)
         symaddr = getoff(sym)
         if symaddr == 0:
@@ -207,27 +206,6 @@ class PwnCmd(object):
         output = searchcall(sym)
         print(output)
 
-    def at(self, *arg):
-        """ Attach by processname """
-        (processname,) = normalize_argv(arg, 1)
-        if not processname:
-            processname = getprocname(relative=True)
-            if not processname:
-                print("Attaching program: ")
-                print("No executable file specified.")
-                print("Use the \"file\" or \"exec-file\" command.")
-                return
-        try:
-            print("Attaching to %s ..." % processname)
-            pidlist = subprocess.check_output("pidof " + processname, shell=True).decode('utf8').split()
-            gdb.execute("attach " + pidlist[0])
-            getheapbase()
-            libcbase()
-            codeaddr()
-            ldbase()
-        except:
-            print("No such process")
-
     def bcall(self, *arg):
         """ Set the breakpoint at some function call """
         (sym,) = normalize_argv(arg, 1)
@@ -246,62 +224,6 @@ class PwnCmd(object):
                     addr = int(callbase.split(':')[0], 16)
                     cmd = "b*" + hex(addr)
                     print(gdb.execute(cmd, to_string=True))
-
-    def boff(self, *arg):
-        """ Set the breakpoint at some offset from base address """
-        (sym,) = normalize_argv(arg, 1)
-        codebaseaddr, codeend = codeaddr()
-        if sym not in self.bpoff:
-            self.bpoff.append(sym)
-        cmd = "b*" + hex(codebaseaddr + sym)
-        x = gdb.execute(cmd, to_string=True)
-        y = x.rstrip().split("\n")[-1].split()[1]
-        self.prevbp.append(y)
-        print(x.rstrip())
-
-    def tboff(self, *arg):
-        """ Set temporary breakpoint at some offset from base address """
-        (sym,) = normalize_argv(arg, 1)
-        codebaseaddr, codeend = codeaddr()
-        cmd = "tb*" + hex(codebaseaddr + sym)
-        print(gdb.execute(cmd, to_string=True))
-
-    def atboff(self, *arg):
-        """ Attach and set breakpoints accordingly """
-        (sym,) = normalize_argv(arg, 1)
-        cmd = "attach " + str(sym)
-        print(gdb.execute(cmd, to_string=True))
-        x = len(self.prevbp)
-        while x > 0:
-            i = self.prevbp.pop(0)
-            cmd = "del " + i
-            gdb.execute(cmd, to_string=True)
-            x -= 1
-        for i in self.bpoff:
-            self.boff(hex(i))
-
-    def doff(self, *arg):
-        """ Delete the breakpoint using breakpoint number at some offset from base address """
-        (sym,) = normalize_argv(arg, 1)
-        if str(sym) not in self.prevbp:
-            return
-        codebaseaddr, codeend = codeaddr()
-        cmd = "i b " + str(sym)
-        x = gdb.execute(cmd, to_string=True)
-        y = int(x.rstrip().split("\n")[1].split()[4], 16) - codebaseaddr
-        cmd = "del " + str(sym)
-        print(gdb.execute(cmd, to_string=True).rstrip())
-        self.bpoff.remove(y)
-        self.prevbp.remove(str(sym))
-
-    def xo(self, *arg):
-        """ Examine at offset from base address """
-        (_, arg1,) = normalize_argv(arg, 2)
-        cmd = "x" + arg[0] + " "
-        if arg1:
-            codebaseaddr, _ = codeaddr()
-            cmd += hex(codebaseaddr + arg1)
-        print(gdb.execute(cmd, to_string=True)[:-1])
 
 
 class PwngdbCmd(gdb.Command):
