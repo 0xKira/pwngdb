@@ -2,7 +2,7 @@ source ~/peda/peda.py
 source ~/pwngdb/pwngdb.py
 source ~/pwngdb/pwngdb/gdbinit.py
 
-define hook-run
+define hookpost-run
 python
 import angelheap
 angelheap.init_angelheap()
@@ -11,7 +11,7 @@ gdbpwnpwnpwn.init()
 end
 end
 
-define hook-attach
+define hookpost-attach
 python
 import angelheap
 angelheap.init_angelheap()
