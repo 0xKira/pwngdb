@@ -189,13 +189,11 @@ class PwnCmd(object):
 
     def rop(self, *arg):
         """ ROPgadget """
-        to_search = ' '.join(arg)
         procname = getprocname()
+        cmd = 'ROPgadget --binary "{}"'.format(procname)
         if procname:
-            if to_search:
-                cmd = 'ROPgadget --binary "{}" | grep "{}"'.format(procname, to_search)
-            else:
-                cmd = 'ROPgadget --binary "{}"'.format(procname)
+            for s in arg:
+                cmd += ' | grep "{}"'.format(s)
             subprocess.call(cmd, shell=True)
         else:
             print("No current process or executable file specified.")
