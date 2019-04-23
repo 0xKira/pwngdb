@@ -52,11 +52,9 @@ def init():
     global proc_name, is_pie_on
     set_current_pid()
     proc_name = get_proc_name()
-    if pie_on(proc_name):
-        is_pie_on = True
+    is_pie_on = pie_on(proc_name)
+    if is_pie_on:
         set_elf_base(proc_name)
-    else:
-        is_pie_on = False
     gdb.execute('getheap')
     gdb.execute('libc')
     if is_pie_on:
