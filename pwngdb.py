@@ -67,7 +67,7 @@ class PwnCmd(object):
         """ Get heapbase """
         heapbase = getheapbase()
         if heapbase:
-            print("\033[34m" + "heap base : " + "\033[37m" + hex(heapbase))
+            print("\033[35m" + "heap base : " + "\033[37m" + hex(heapbase))
         else:
             print("heap not found")
 

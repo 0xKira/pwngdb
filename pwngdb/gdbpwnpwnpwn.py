@@ -18,17 +18,17 @@ def set_current_pid():
     return False
 
 
-def set_elf_base(proc_name, output=True):
+def set_elf_base(proc_name):
     global elf_base, elf_base_old
     elf_base_old = elf_base
     patt = re.compile(r'.*?([0-9a-f]+)\-[0-9a-f]+\s+r-xp.*?%s' % proc_name)
     vmmap = check_output(['cat', '/proc/%s/maps' % pid]).decode()
     elf_base = int(patt.findall(vmmap)[0], 16)
-    if output:
-        print("\033[32m" + 'process base:' + "\033[37m", hex(elf_base))
+    print("\033[32m" + 'process base:' + "\033[37m", hex(elf_base))
 
 
 def get_proc_name():
+    global proc_name
     proc_name = None
     try:
         data = gdb.execute("info proc exe", to_string=True)
@@ -50,11 +50,15 @@ def pie_on(proc_name):
 
 def init():
     global proc_name, is_pie_on
+    set_current_pid()
     proc_name = get_proc_name()
     if pie_on(proc_name):
         is_pie_on = True
+        set_elf_base(proc_name)
     else:
         is_pie_on = False
+    gdb.execute('getheap')
+    gdb.execute('libc')
 
 
 class ReattachCommand(gdb.Command):
@@ -73,7 +77,7 @@ class ReattachCommand(gdb.Command):
         if len(fn) > 0:
             proc_name = fn
         else:
-            proc_name = get_proc_name()
+            get_proc_name()
         if not proc_name:
             print('Please specify program name first!')
             return
@@ -88,10 +92,7 @@ class ReattachCommand(gdb.Command):
 
         pid = pid.decode().split(' ')[0]
         gdb.execute('attach ' + pid)
-        gdb.execute('getheap')
         if is_pie_on:
-            is_pie_on = True
-            set_elf_base(proc_name)
             # if existing some breakpoints, delete them and set new breakpoints
             if gdb.breakpoints():
                 breakpoints = []
@@ -120,8 +121,6 @@ class PieBreak(gdb.Command):
             print('I need an offset:(')
             return
         if is_pie_on:
-            set_current_pid()
-            set_elf_base(proc_name)
             gdb.execute('b *%d' % (int(gdb.parse_and_eval(offset).cast(gdb.lookup_type('long'))) + elf_base))
         else:
             gdb.execute('b *%d' % (gdb.parse_and_eval(offset)))
@@ -139,8 +138,6 @@ class PieExamineMem(gdb.Command):
             print('I need an memory location:(')
             return
         if is_pie_on:
-            set_current_pid()
-            set_elf_base(proc_name, False)
             gdb.execute('x{}+0x{:x}'.format(arg.rstrip(), elf_base))
         else:
             gdb.execute('x' + arg)
