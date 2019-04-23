@@ -59,6 +59,19 @@ def init():
         is_pie_on = False
     gdb.execute('getheap')
     gdb.execute('libc')
+    if is_pie_on:
+        # if existing some breakpoints, delete them and set new breakpoints
+        if gdb.breakpoints():
+            breakpoints = []
+            for br in gdb.breakpoints():
+                # won't delete symbol breakpoint
+                find = re.findall('^\*((?:0x)?[0-9a-fA-F]+)$', br.location)
+                if find:
+                    location = int(find[0], 0)  # let python figure out the base
+                    breakpoints.append(location - elf_base_old)
+                    br.delete()
+            for i in breakpoints:
+                gdb.execute('b *%d' % (i + elf_base))
 
 
 class ReattachCommand(gdb.Command):
@@ -92,21 +105,6 @@ class ReattachCommand(gdb.Command):
 
         pid = pid.decode().split(' ')[0]
         gdb.execute('attach ' + pid)
-        if is_pie_on:
-            # if existing some breakpoints, delete them and set new breakpoints
-            if gdb.breakpoints():
-                breakpoints = []
-                for br in gdb.breakpoints():
-                    # won't delete symbol breakpoint
-                    find = re.findall('^\*(\d+)$', br.location)
-                    if find:
-                        location = int(find[0])
-                        breakpoints.append(location - elf_base_old)
-                        br.delete()
-                for i in breakpoints:
-                    gdb.execute('b *%d' % (i + elf_base))
-        else:
-            is_pie_on = False
 
 
 class PieBreak(gdb.Command):
