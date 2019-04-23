@@ -131,6 +131,10 @@ class PwnCmd(object):
         getarch()
 
         try:
+            infomap = procmap()
+            data = re.findall('.*libc.*\.so', infomap)
+            if data:
+                libc_addr = data[0].split()[-1]
             print("========== function ==========")
             for f in magic_function:
                 print("\033[34m%s\033[33m(%s)\033[37m" % (f, hex(getoff(f))))
@@ -141,12 +145,15 @@ class PwnCmd(object):
                 offset = hex(getoff("&" + v))
                 pad = 36 - len(v) - len(offset) - 2
                 print("\033[34m%s\033[33m(%s)\033[37m%s: \033[37m%s" % (v, offset, ' ' * pad, content))
-            print("========== one gadget ==========")
-            infomap = procmap()
-            data = re.findall('.*libc.*\.so', infomap)
-            if data:
-                libc_addr = data[0].split()[-1]
-                system("one_gadget {}".format(libc_addr))
+            if libc_addr:
+                cmd = 'strings -t x {} | grep "/bin/sh"'.format(libc_addr)
+                binsh_off = subprocess.check_output(cmd, shell=True).decode('utf8').split()[0]
+                pad = 23 - len(binsh_off)
+                print('\033[34m"/bin/sh"\033[33m(0x%s)\033[37m%s: \033[37m0x0068732f6e69622f' % (binsh_off.split()[0], ' ' * pad))
+                # print one gadget
+                if path.isfile('/usr/local/bin/one_gadget'):
+                    print("========== one gadget ==========")
+                    system("one_gadget {}".format(libc_addr))
         except:
             print("You need run the program first")
 
