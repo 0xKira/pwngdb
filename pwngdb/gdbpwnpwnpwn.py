@@ -36,7 +36,7 @@ def get_proc_name():
     except:
         data = gdb.execute("info files", to_string=True)
         if data:
-            proc_name = re.search('Symbols from "(.*)"', data).group(1)
+            proc_name = re.search("`(.*)', file type", data).group(1)
     return proc_name
 
 
