@@ -18,13 +18,14 @@ def set_current_pid():
     return False
 
 
-def set_elf_base(proc_name):
+def set_elf_base(proc_name, output):
     global elf_base, elf_base_old
     elf_base_old = elf_base
     patt = re.compile(r'.*?([0-9a-f]+)\-[0-9a-f]+\s+r-xp.*?%s' % proc_name)
     vmmap = check_output(['cat', '/proc/%s/maps' % pid]).decode()
     elf_base = int(patt.findall(vmmap)[0], 16)
-    print("\033[32m" + 'process base:' + "\033[37m", hex(elf_base))
+    if output:
+        print("\033[32m" + 'process base:' + "\033[37m", hex(elf_base))
 
 
 def get_proc_name():
@@ -48,15 +49,15 @@ def pie_on(proc_name):
         return False
 
 
-def init():
+def init(output=True):
     global proc_name, is_pie_on
     set_current_pid()
     proc_name = get_proc_name()
     is_pie_on = pie_on(proc_name)
     if is_pie_on:
-        set_elf_base(proc_name)
-    gdb.execute('getheap')
-    gdb.execute('libc')
+        set_elf_base(proc_name, output)
+    gdb.execute('getheap', to_string=(not output))
+    gdb.execute('libc', to_string=(not output))
     if is_pie_on:
         # if existing some breakpoints, delete them and set new breakpoints
         if gdb.breakpoints():

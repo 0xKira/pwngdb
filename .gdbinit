@@ -7,7 +7,7 @@ python
 import angelheap
 angelheap.init_angelheap()
 import gdbpwnpwnpwn
-gdbpwnpwnpwn.init()
+gdbpwnpwnpwn.init(False)
 end
 end
 
