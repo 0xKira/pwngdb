@@ -60,8 +60,10 @@ class PwnCmd(object):
     def libc(self):
         """ Get libc base """
         libcbs = libcbase()
-
-        print("\033[34m" + "libc : " + "\033[37m" + hex(libcbs))
+        if libcbs:
+            print("\033[34m" + "libc : " + "\033[37m" + hex(libcbs))
+        else:
+            print('libc not found')
 
     def getheap(self):
         """ Get heapbase """
@@ -73,16 +75,27 @@ class PwnCmd(object):
 
     def ld(self):
         """ Get ld.so base """
-        print("\033[34m" + "ld : " + "\033[37m" + hex(ldbase()))
+        ldbs = ldbase()
+        if ldbs:
+            print("\033[34m" + "ld : " + "\033[37m" + hex(ldbs))
+        else:
+            print('ld base not found')
 
     def codebase(self):
         """ Get text base """
         codebs = codeaddr()[0]
-        print("\033[34m" + "codebase : " + "\033[37m" + hex(codebs))
+        if codebs:
+            print("\033[34m" + "codebase : " + "\033[37m" + hex(codebs))
+        else:
+            print('code base not found')
 
     def tls(self):
         """ Get tls base """
-        print("\033[34m" + "tls : " + "\033[37m" + hex(gettls()))
+        tls = gettls()
+        if tls:
+            print("\033[34m" + "tls : " + "\033[37m" + hex(tls))
+        else:
+            print('tls not found')
 
     def canary(self):
         """ Get canary value """
@@ -406,19 +419,21 @@ def gettls():
         if match:
             tlsaddr = int(match.group(), 16) - 0x10
         else:
-            return "error"
+            return 0
         return tlsaddr
     elif arch == "x86-64":
         gdb.execute("call (int)arch_prctl(0x1003,$rsp-8)", to_string=True)
         data = gdb.execute("x/xg $rsp-8", to_string=True)
         return int(data.split(":")[1].strip(), 16)
     else:
-        return "error"
+        return 0
 
 
 def getcanary():
     arch = getarch()
     tlsaddr = gettls()
+    if not tlsaddr:
+        return 'error'
     if arch == "i386":
         offset = 0x14
         result = gdb.execute("x/xw " + hex(tlsaddr + offset), to_string=True).split(":")[1].strip()
