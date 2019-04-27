@@ -146,7 +146,7 @@ class PwnCmd(object):
         try:
             infomap = procmap()
             libc_base = libcbase()
-            data = re.findall('.*libc.*\.so', infomap)
+            data = re.findall('\S*libc.*\.so.*', infomap)
             if data:
                 libc_path = data[0].split()[-1]
             print("========== function ==========")
