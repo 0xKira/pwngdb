@@ -414,15 +414,15 @@ def gettls():
     arch = getarch()
     if arch == "i386":
         vsysaddr = gdb.execute("info functions __kernel_vsyscall", to_string=True).split("\n")[-2].split()[0].strip()
-        sysinfo = gdb.execute("find " + vsysaddr, to_string=True).split("\n")[2]
-        match = re.search(r"0x[0-9a-z]{8}", sysinfo)
+        sysinfo = gdb.execute("searchmem " + vsysaddr, to_string=True)
+        match = re.search(r"mapped : .*(0x[0-9a-z]{8})", sysinfo)
         if match:
-            tlsaddr = int(match.group(), 16) - 0x10
+            tlsaddr = int(match.groups()[0], 16) - 0x10
         else:
             return 0
         return tlsaddr
     elif arch == "x86-64":
-        gdb.execute("call (int)arch_prctl(0x1003,$rsp-8)", to_string=True)
+        gdb.execute("call (int)arch_prctl(0x1003, $rsp-8)", to_string=True)
         data = gdb.execute("x/xg $rsp-8", to_string=True)
         return int(data.split(":")[1].strip(), 16)
     else:
