@@ -156,7 +156,7 @@ class PwnCmd(object):
                 to_print = "\033[34m%s\033[33m(%s)\033[37m" % (f, hex(getoff(f)))
                 to_print = to_print.ljust(36 + 15, ' ') + func_addr
                 print(to_print)
-            print("========== variables ==========")
+            print("\033[00m========== variables ==========")
             for v in magic_variable:
                 cmd = "x/" + word + "&" + v
                 output = gdb.execute(cmd, to_string=True)
