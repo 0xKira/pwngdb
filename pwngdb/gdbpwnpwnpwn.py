@@ -11,7 +11,7 @@ proc_name = None
 
 def set_current_pid():
     i = gdb.selected_inferior()
-    if i is not None:
+    if (i is not None) and (i.pid > 0):
         global pid
         pid = i.pid
         return True
@@ -51,7 +51,8 @@ def pie_on(proc_name):
 
 def init(output=True):
     global proc_name, is_pie_on
-    set_current_pid()
+    if not set_current_pid():
+        return
     proc_name = get_proc_name()
     is_pie_on = pie_on(proc_name)
     if is_pie_on:
