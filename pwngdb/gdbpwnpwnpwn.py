@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
+__author__ = "Kira"
 import gdb
 import re
-from subprocess import check_output, CalledProcessError, STDOUT
+from subprocess import check_output, CalledProcessError
 
 elf_base = 0
 elf_base_old = 0
@@ -79,7 +81,6 @@ class ReattachCommand(gdb.Command):
     Reattaches the new instance of the previous process.
     First argument is the name of executable (enough to specify the first time)
     """
-
     def __init__(self):
         super(ReattachCommand, self).__init__("ra", gdb.COMMAND_SUPPORT, gdb.COMPLETE_FILENAME)
 
@@ -109,7 +110,6 @@ class ReattachCommand(gdb.Command):
 
 class PieBreak(gdb.Command):
     """ Break according to the offset to the elf base address """
-
     def __init__(self):
         super(PieBreak, self).__init__("bb", gdb.COMMAND_SUPPORT, gdb.COMPLETE_EXPRESSION)
 
@@ -126,7 +126,6 @@ class PieBreak(gdb.Command):
 
 class PieExamineMem(gdb.Command):
     """ Examine memory according to the offset to the elf base address """
-
     def __init__(self):
         super(PieExamineMem, self).__init__("xx", gdb.COMMAND_SUPPORT, gdb.COMPLETE_EXPRESSION)
 
