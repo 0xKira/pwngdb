@@ -27,7 +27,7 @@ def set_elf_base(proc_name, output):
     vmmap = check_output(['cat', '/proc/%s/maps' % pid]).decode()
     elf_base = int(patt.findall(vmmap)[0], 16)
     if output:
-        print("\033[32m" + 'process base:' + "\033[37m", hex(elf_base))
+        print("\033[32m" + 'text:' + "\033[37m", hex(elf_base))
 
 
 def get_proc_name():
@@ -81,6 +81,7 @@ class ReattachCommand(gdb.Command):
     Reattaches the new instance of the previous process.
     First argument is the name of executable (enough to specify the first time)
     """
+
     def __init__(self):
         super(ReattachCommand, self).__init__("ra", gdb.COMMAND_SUPPORT, gdb.COMPLETE_FILENAME)
 
@@ -110,6 +111,7 @@ class ReattachCommand(gdb.Command):
 
 class PieBreak(gdb.Command):
     """ Break according to the offset to the elf base address """
+
     def __init__(self):
         super(PieBreak, self).__init__("bb", gdb.COMMAND_SUPPORT, gdb.COMPLETE_EXPRESSION)
 
@@ -126,6 +128,7 @@ class PieBreak(gdb.Command):
 
 class PieExamineMem(gdb.Command):
     """ Examine memory according to the offset to the elf base address """
+
     def __init__(self):
         super(PieExamineMem, self).__init__("xx", gdb.COMMAND_SUPPORT, gdb.COMPLETE_EXPRESSION)
 

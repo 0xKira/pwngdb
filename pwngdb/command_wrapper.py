@@ -15,7 +15,7 @@ class AngelHeapCmd(object):
 
     def tracemalloc(self, *arg):
         """ Trace the malloc and free and detect some error """
-        (option,) = normalize_argv(arg, 1)
+        (option, ) = normalize_argv(arg, 1)
         if option == "on":
             try:
                 angelheap.trace_malloc()
@@ -26,7 +26,7 @@ class AngelHeapCmd(object):
 
     def heapinfo(self, *arg):
         """ Print some information of heap """
-        (arena,) = normalize_argv(arg, 1)
+        (arena, ) = normalize_argv(arg, 1)
         angelheap.putheapinfo(arena)
 
     def heapinfoall(self):
@@ -39,27 +39,27 @@ class AngelHeapCmd(object):
 
     def chunkinfo(self, *arg):
         """ Print chunk information of victim"""
-        (victim,) = normalize_argv(arg, 1)
+        (victim, ) = normalize_argv(arg, 1)
         angelheap.chunkinfo(victim)
 
     def free(self, *arg):
         """ Print chunk is freeable """
-        (victim,) = normalize_argv(arg, 1)
+        (victim, ) = normalize_argv(arg, 1)
         angelheap.freeptr(victim)
 
     def chunkptr(self, *arg):
         """ Print chunk information of user ptr"""
-        (ptr,) = normalize_argv(arg, 1)
+        (ptr, ) = normalize_argv(arg, 1)
         angelheap.chunkptr(ptr)
 
     def mergeinfo(self, *arg):
         """ Print merge information of victim"""
-        (victim,) = normalize_argv(arg, 1)
+        (victim, ) = normalize_argv(arg, 1)
         angelheap.mergeinfo(victim)
 
     def force(self, *arg):
         """ Calculate the nb in the house of force """
-        (target,) = normalize_argv(arg, 1)
+        (target, ) = normalize_argv(arg, 1)
         angelheap.force(target)
 
     def fastbins(self):
