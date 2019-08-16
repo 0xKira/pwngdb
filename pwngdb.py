@@ -242,7 +242,7 @@ class PwnCmd(object):
         """ Set the breakpoint at some function call """
         (sym,) = normalize_argv(arg, 1)
         call = searchcall(sym)
-        if "not found" in call:
+        if not call:
             print("symbol not found")
         else:
             if ispie():
@@ -250,12 +250,12 @@ class PwnCmd(object):
                 for callbase in call.split('\n')[:-1]:
                     addr = int(callbase.split(':')[0], 16) + codebaseaddr
                     cmd = "b*" + hex(addr)
-                    print(gdb.execute(cmd, to_string=True))
+                    gdb.execute(cmd)
             else:
                 for callbase in call.split('\n')[:-1]:
                     addr = int(callbase.split(':')[0], 16)
                     cmd = "b*" + hex(addr)
-                    print(gdb.execute(cmd, to_string=True))
+                    gdb.execute(cmd)
 
 
 class PwngdbCmd(gdb.Command):
@@ -469,12 +469,12 @@ def searchcall(sym):
     cmd = "objdump -d -M intel "
     if iscplus:
         cmd += "--demangle "
-    cmd += "\"" + procname + "\""
+    cmd += '"{}"'.format(procname)
     try:
         call = subprocess.check_output(cmd + "| grep \"call.*" + sym + "@plt>\"", shell=True).decode('utf8')
         return call
     except:
-        return "symbol not found"
+        return ''
 
 
 def ispie():
