@@ -13,8 +13,9 @@ directory = path.abspath(directory)
 capsize = 0
 word = ""
 arch = ""
-magic_variable = ["__malloc_hook", "__free_hook", "__realloc_hook", "stdin", "stdout", "_IO_list_all",
-                  "__after_morecore_hook"]
+magic_variable = [
+    "__malloc_hook", "__free_hook", "__realloc_hook", "stdin", "stdout", "_IO_list_all", "__after_morecore_hook"
+]
 magic_function = ["system", "execve", "open", "read", "write", "gets", "mprotect", "setcontext+0x35"]
 
 
@@ -61,7 +62,7 @@ class PwnCmd(object):
         """ Get libc base """
         libcbs = libcbase()
         if libcbs:
-            print("\033[34m" + "libc : " + "\033[37m" + hex(libcbs))
+            print("\033[34m" + "libc: " + "\033[37m" + hex(libcbs))
         else:
             print('libc not found')
 
@@ -69,7 +70,7 @@ class PwnCmd(object):
         """ Get heapbase """
         heapbase = getheapbase()
         if heapbase:
-            print("\033[35m" + "heap base : " + "\033[37m" + hex(heapbase))
+            print("\033[35m" + "heap: " + "\033[37m" + hex(heapbase))
         else:
             print("heap not found")
 
@@ -77,7 +78,7 @@ class PwnCmd(object):
         """ Get ld.so base """
         ldbs = ldbase()
         if ldbs:
-            print("\033[34m" + "ld : " + "\033[37m" + hex(ldbs))
+            print("\033[34m" + "ld: " + "\033[37m" + hex(ldbs))
         else:
             print('ld base not found')
 
@@ -85,7 +86,7 @@ class PwnCmd(object):
         """ Get text base """
         codebs = codeaddr()[0]
         if codebs:
-            print("\033[34m" + "codebase : " + "\033[37m" + hex(codebs))
+            print("\033[34m" + "text: " + "\033[37m" + hex(codebs))
         else:
             print('code base not found')
 
@@ -93,21 +94,21 @@ class PwnCmd(object):
         """ Get tls base """
         tls = gettls()
         if tls:
-            print("\033[34m" + "tls : " + "\033[37m" + hex(tls))
+            print("\033[34m" + "tls: " + "\033[37m" + hex(tls))
         else:
             print('tls not found')
 
     def canary(self):
         """ Get canary value """
-        print("\033[34m" + "canary : " + "\033[37m" + hex(getcanary()))
+        print("\033[34m" + "canary: " + "\033[37m" + hex(getcanary()))
 
     def fmtarg(self, *arg):
-        (addr,) = normalize_argv(arg, 1)
+        (addr, ) = normalize_argv(arg, 1)
         getfmtarg(addr)
 
     def off(self, *arg):
         """ Calculate offset to libc """
-        (sym,) = normalize_argv(arg, 1)
+        (sym, ) = normalize_argv(arg, 1)
         symaddr = getoff(sym)
         if symaddr == 0:
             print("Not found the symbol")
@@ -119,7 +120,7 @@ class PwnCmd(object):
 
     def fp(self, *arg):
         """ show FILE structure """
-        (addr,) = normalize_argv(arg, 1)
+        (addr, ) = normalize_argv(arg, 1)
         showfp(addr)
 
     def fpchain(self):
@@ -128,7 +129,7 @@ class PwnCmd(object):
 
     def orange(self, *arg):
         """ test house of orange """
-        (addr,) = normalize_argv(arg, 1)
+        (addr, ) = normalize_argv(arg, 1)
         if addr:
             testorange(addr)
         else:
@@ -136,7 +137,7 @@ class PwnCmd(object):
 
     def fsop(self, *arg):
         """ test fsop """
-        (addr,) = normalize_argv(arg, 1)
+        (addr, ) = normalize_argv(arg, 1)
         testfsop(addr)
 
     def magic(self):
@@ -146,7 +147,7 @@ class PwnCmd(object):
         try:
             infomap = procmap()
             libc_base = libcbase()
-            data = re.findall('\S*libc.*\.so.*', infomap)
+            data = re.findall(r'\S*libc.*\.so.*', infomap)
             if data:
                 libc_path = data[0].split()[-1]
             print("========== function ==========")
@@ -206,7 +207,7 @@ class PwnCmd(object):
             cmd = "objdump -R "
             if iscplus:
                 cmd += "--demangle "
-            cmd += "\"" + processname + "\""
+            cmd += '"{}"'.format(processname)
             got = subprocess.check_output(cmd, shell=True)[:-2].decode('utf8')
             print(got)
         else:
@@ -216,7 +217,7 @@ class PwnCmd(object):
         """ Print dynamic section """
         processname = getprocname()
         if processname:
-            dyn = subprocess.check_output("readelf -d \"" + processname + "\"", shell=True).decode('utf8')
+            dyn = subprocess.check_output('readelf -d "{}"'.format(processname), shell=True).decode('utf8')
             print(dyn)
         else:
             print("No current process or executable file specified.")
@@ -234,13 +235,13 @@ class PwnCmd(object):
 
     def findcall(self, *arg):
         """ Find some function call """
-        (sym,) = normalize_argv(arg, 1)
+        (sym, ) = normalize_argv(arg, 1)
         output = searchcall(sym)
         print(output)
 
     def bcall(self, *arg):
         """ Set the breakpoint at some function call """
-        (sym,) = normalize_argv(arg, 1)
+        (sym, ) = normalize_argv(arg, 1)
         call = searchcall(sym)
         if not call:
             print("symbol not found")
@@ -341,8 +342,7 @@ def procmap():
 
 def iscplus():
     name = getprocname()
-    data = subprocess.check_output(
-        "readelf -s " + name, shell=True).decode('utf8')
+    data = subprocess.check_output("readelf -s " + name, shell=True).decode('utf8')
     if "CXX" in data:
         return True
     else:
@@ -365,7 +365,7 @@ def getprocname(relative=False):
 
 def libcbase():
     infomap = procmap()
-    data = re.search(".*libc.*\.so", infomap)
+    data = re.search(r".*libc.*\.so", infomap)
     if data:
         libcaddr = data.group().split("-")[0]
         gdb.execute("set $libc=%s" % hex(int(libcaddr, 16)))
@@ -376,7 +376,7 @@ def libcbase():
 
 def ldbase():
     infomap = procmap()
-    data = re.search(".*ld.*\.so", infomap)
+    data = re.search(r".*ld.*\.so", infomap)
     if data:
         ldaddr = data.group().split("-")[0]
         gdb.execute("set $ld=%s" % hex(int(ldaddr, 16)))
@@ -387,7 +387,7 @@ def ldbase():
 
 def getheapbase():
     infomap = procmap()
-    data = re.search(".*heap\]", infomap)
+    data = re.search(r".*heap\]", infomap)
     if data:
         heapbase = data.group().split("-")[0]
         gdb.execute("set $heap=%s" % hex(int(heapbase, 16)))
@@ -496,8 +496,8 @@ def showfp(addr):
     if addr:
         cmd = "p *(struct _IO_FILE_plus *)" + hex(addr)
         try:
-            result = gdb.execute(cmd)
-        except:
+            gdb.execute(cmd)
+        except gdb.error:
             print("Can't not access 0x%x" % addr)
     else:
         print("You need to specify an address")
@@ -539,8 +539,8 @@ def testorange(addr):
             cmd = "x/" + word + "&((struct _IO_wide_data *)" + hex(wide_data) + ")._IO_write_base"
             w_write_base = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
             if w_write_ptr <= w_write_base:
-                print("\033[;1;31m_wide_data->_IO_write_ptr(0x%x) < _wide_data->_IO_write_base(0x%x)\033[1;37m" % (
-                w_write_ptr, w_write_base))
+                print("\033[;1;31m_wide_data->_IO_write_ptr(0x%x) < _wide_data->_IO_write_base(0x%x)\033[1;37m" %
+                      (w_write_ptr, w_write_base))
                 result = False
         except:
             print("\033;1;31mCan't access wide_data\033[1;37m")
@@ -585,11 +585,11 @@ def getfmtarg(addr):
     if arch == "i386":
         start = get_reg("esp")
         idx = (addr - start) / 4
-        print("The index of format argument : %d (\"%%%d$p\")" % (idx, idx - 1))
+        print('The index of format argument : %d ("%%%d$p")' % (idx, idx - 1))
     elif arch == "x86-64":
         start = get_reg("rsp")
         idx = (addr - start) / 8 + 6
-        print("The index of format argument : %d (\"%%%d$p\")" % (idx, idx - 1))
+        print('The index of format argument : %d ("%%%d$p")' % (idx, idx - 1))
     else:
         print("Not support the arch")
 
