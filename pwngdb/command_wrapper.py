@@ -1,8 +1,8 @@
 # !/usr/bin/env python3
 # -*- coding: utf-8 -*-
 import gdb
-import angelheap
-from utils import normalize_argv
+from . import angelheap
+from .utils import normalize_argv
 
 
 class AngelHeapCmd(object):

@@ -3,9 +3,9 @@ import gdb
 import subprocess
 import re
 from os import path, system
-from utils import normalize_argv
+from .utils import normalize_argv, proc_map
 
-# arch
+# arch info
 capsize = 0
 word = ""
 arch = ""
@@ -26,7 +26,7 @@ class PwnCmd(object):
 
     def libc(self):
         """ Get libc base """
-        libcbs = libcbase()
+        libcbs = libc_base()
         if libcbs:
             print("\033[34m" + "libc: " + "\033[37m" + hex(libcbs))
         else:
@@ -108,11 +108,9 @@ class PwnCmd(object):
 
     def magic(self):
         """ Print usefual variables or function in glibc """
-        getarch()
-
         try:
-            infomap = procmap()
-            libc_base = libcbase()
+            infomap = proc_map()
+            libc = libc_base()
             data = re.findall(r'\S*libc.*\.so.*', infomap)
             if data:
                 libc_path = data[0].split()[-1]
@@ -137,7 +135,7 @@ class PwnCmd(object):
             if libc_path:
                 cmd = 'strings -t x {} | grep "/bin/sh"'.format(libc_path)
                 binsh_off = subprocess.check_output(cmd, shell=True).decode('utf8').split()[0]
-                binsh_addr = libc_base + int(binsh_off, 16)
+                binsh_addr = libc + int(binsh_off, 16)
                 cmd = "x/" + word + hex(binsh_addr)
                 binsh_content = gdb.execute(cmd, to_string=True).split(':')[1].strip()
                 to_print = '\033[34m"/bin/sh"\033[33m(0x%s)\033[37m' % binsh_off
@@ -152,8 +150,7 @@ class PwnCmd(object):
             print("You need run the program first")
 
     def findsyscall(self):
-        """ find the syscall gadget"""
-        arch = getarch()
+        """ find the syscall gadget """
         start, end = codeaddr()
         if arch == "x86-64":
             gdb.execute("find 0x050f " + hex(start) + " " + hex(end))
@@ -225,52 +222,6 @@ class PwnCmd(object):
                     gdb.execute(cmd)
 
 
-def getarch():
-    global capsize
-    global word
-    global arch
-    data = gdb.execute('show arch', to_string=True)
-    tmp = re.search("currently.*", data)
-    if tmp:
-        info = tmp.group()
-        if "x86-64" in info:
-            capsize = 8
-            word = "gx "
-            arch = "x86-64"
-            return "x86-64"
-        elif "aarch64" in info:
-            capsize = 8
-            word = "gx "
-            arch = "aarch64"
-            return "aarch64"
-        elif "arm" in info:
-            capsize = 4
-            word = "wx "
-            arch = "arm"
-            return "arm"
-        else:
-            word = "wx "
-            capsize = 4
-            arch = "i386"
-            return "i386"
-    else:
-        return "error"
-
-
-def procmap():
-    data = gdb.execute('info proc exe', to_string=True)
-    pid = re.search('process.*', data)
-    if pid:
-        pid = pid.group()
-        pid = pid.split()[1]
-        maps = open("/proc/" + pid + "/maps", "r")
-        infomap = maps.read()
-        maps.close()
-        return infomap
-    else:
-        return "error"
-
-
 def iscplus():
     name = getprocname()
     data = subprocess.check_output("readelf -s " + name, shell=True).decode('utf8')
@@ -294,8 +245,8 @@ def getprocname(relative=False):
     return procname
 
 
-def libcbase():
-    infomap = procmap()
+def libc_base():
+    infomap = proc_map()
     data = re.search(r".*libc.*\.so", infomap)
     if data:
         libcaddr = data.group().split("-")[0]
@@ -306,7 +257,7 @@ def libcbase():
 
 
 def ldbase():
-    infomap = procmap()
+    infomap = proc_map()
     data = re.search(r".*ld.*\.so", infomap)
     if data:
         ldaddr = data.group().split("-")[0]
@@ -317,7 +268,7 @@ def ldbase():
 
 
 def getheapbase():
-    infomap = procmap()
+    infomap = proc_map()
     data = re.search(r".*heap\]", infomap)
     if data:
         heapbase = data.group().split("-")[0]
@@ -328,7 +279,7 @@ def getheapbase():
 
 
 def codeaddr():  # ret (start,end)
-    infomap = procmap()
+    infomap = proc_map()
     procname = getprocname()
     pat = ".*" + procname
     data = re.findall(pat, infomap)
@@ -342,7 +293,6 @@ def codeaddr():  # ret (start,end)
 
 
 def gettls():
-    arch = getarch()
     if arch == "i386":
         vsysaddr = gdb.execute("info functions __kernel_vsyscall", to_string=True).split("\n")[-2].split()[0].strip()
         sysinfo = gdb.execute("searchmem " + vsysaddr, to_string=True)
@@ -361,7 +311,6 @@ def gettls():
 
 
 def getcanary():
-    arch = getarch()
     tlsaddr = gettls()
     if not tlsaddr:
         return 'error'
@@ -378,7 +327,7 @@ def getcanary():
 
 
 def getoff(sym):
-    libc = libcbase()
+    libc = libc_base()
     if type(sym) is int:
         return sym - libc
     else:
@@ -435,7 +384,6 @@ def showfp(addr):
 
 
 def showfpchain():
-    getarch()
     cmd = "x/" + word + "&_IO_list_all"
     head = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
     print("\033[32mfpchain:\033[1;37m ", end="")
@@ -453,7 +401,6 @@ def showfpchain():
 
 
 def testorange(addr):
-    getarch()
     result = True
     cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(addr) + ").file._mode"
     mode = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16) & 0xffffffff
@@ -490,7 +437,6 @@ def testorange(addr):
 
 
 def testfsop(addr=None):
-    getarch()
     if addr:
         cmd = "x/" + word + hex(addr)
     else:
@@ -511,8 +457,6 @@ def testfsop(addr=None):
 
 
 def getfmtarg(addr):
-    if capsize == 0:
-        getarch()
     if arch == "i386":
         start = get_reg("esp")
         idx = (addr - start) / 4
