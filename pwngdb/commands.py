@@ -155,13 +155,13 @@ class PwnCmd(object):
         """ find the syscall gadget """
         start, end = codeaddr()
         if arch == "x86-64":
-            gdb.execute("find 0x050f " + hex(start) + " " + hex(end))
+            gdb.execute("searchmem 0x050f " + hex(start) + " " + hex(end))
         elif arch == "i386":
-            gdb.execute("find 0x80cd " + hex(start) + " " + hex(end))
+            gdb.execute("searchmem 0x80cd " + hex(start) + " " + hex(end))
         elif arch == "arm":
-            gdb.execute("find 0xbc80df00 " + hex(start) + " " + hex(end))
+            gdb.execute("searchmem 0xbc80df00 " + hex(start) + " " + hex(end))
         elif arch == "aarch64":
-            gdb.execute("find 0xd4000001 " + hex(start) + " " + hex(end))
+            gdb.execute("searchmem 0xd4000001 " + hex(start) + " " + hex(end))
         else:
             print("error")
 
