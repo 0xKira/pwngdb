@@ -10,7 +10,9 @@ class AngelHeapCmd(object):
 
     def __init__(self):
         # list all commands
-        self.commands = [cmd for cmd in dir(self) if callable(getattr(self, cmd)) and not cmd.startswith("_")]
+        self.commands = set([cmd for cmd in dir(self) if callable(getattr(self, cmd)) and not cmd.startswith("_")])
+        self.no_eval_cmds = set()
+        self.normal_cmds = self.commands
 
     def tracemalloc(self, *arg):
         """ Trace the malloc and free and detect some error """
@@ -110,19 +112,17 @@ class CmdWrapper(gdb.Command):
     def invoke(self, args, from_tty):
         self.dont_repeat()
         expressions = gdb.string_to_argv(args)
-        arg = self.eval_argv(expressions)
-        if len(arg) > 0:
-            cmd = arg[0]
+        cmd = expressions[0]
 
-            if cmd in self.cmd_obj.commands:
-                func = getattr(self.cmd_obj, cmd)
-                func(*arg[1:])
-            else:
-                print("Unknown command")
+        if cmd in self.cmd_obj.normal_cmds:
+            func = getattr(self.cmd_obj, cmd)
+            arg = self.eval_argv(expressions)
+            func(*arg[1:])
+        elif cmd in self.cmd_obj.no_eval_cmds:
+            func = getattr(self.cmd_obj, cmd)
+            func(*expressions[1:])
         else:
             print("Unknow command")
-
-        return
 
 
 class Alias(gdb.Command):
