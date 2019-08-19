@@ -19,7 +19,7 @@ def get_arch():
         else:
             return "i386", "wx ", 4
     else:
-        return "error"
+        return None, None, None
 
 
 def gdb_map():
