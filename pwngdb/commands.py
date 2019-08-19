@@ -225,41 +225,6 @@ class PwnCmd(object):
                     gdb.execute(cmd)
 
 
-class PwngdbCmd(gdb.Command):
-    """ Pwngdb command wrapper """
-
-    def __init__(self):
-        super(PwngdbCmd, self).__init__("pwngdb", gdb.COMMAND_USER)
-
-    def invoke(self, args, from_tty):
-        self.dont_repeat()
-        # Don't eval expression in PwngdbCmd commands
-        arg = args.split()
-        if len(arg) > 0:
-            cmd = arg[0]
-            if cmd in pwncmd.commands:
-                func = getattr(pwncmd, cmd)
-                func(*arg[1:])
-            else:
-                print("Unknown command")
-        else:
-            print("Unknown command")
-
-        return
-
-
-class PwngdbAlias(gdb.Command):
-    """ Pwngdb Alias """
-
-    def __init__(self, alias, command):
-        self.command = command
-        super(PwngdbAlias, self).__init__(alias, gdb.COMMAND_NONE)
-
-    def invoke(self, args, from_tty):
-        self.dont_repeat()
-        gdb.execute("%s %s" % (self.command, args))
-
-
 def getarch():
     global capsize
     global word
@@ -558,11 +523,3 @@ def getfmtarg(addr):
         print('The index of format argument : %d ("%%%d$p")' % (idx, idx - 1))
     else:
         print("Not support the arch")
-
-
-pwncmd = PwnCmd()
-PwngdbCmd()
-for cmd in pwncmd.commands:
-    PwngdbAlias(cmd, "pwngdb %s" % cmd)
-
-gdb.execute("set print asm-demangle on")

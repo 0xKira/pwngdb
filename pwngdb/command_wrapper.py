@@ -2,10 +2,7 @@
 # -*- coding: utf-8 -*-
 import gdb
 import angelheap
-
 from utils import normalize_argv
-
-angelheap_cmd = None
 
 
 class AngelHeapCmd(object):
@@ -92,11 +89,12 @@ class AngelHeapCmd(object):
             angelheap.check_heap(arg[0])
 
 
-class AngelHeapCmdWrapper(gdb.Command):
-    """ angelheap command wrapper """
+class CmdWrapper(gdb.Command):
+    """ command wrapper """
 
-    def __init__(self):
-        super(AngelHeapCmdWrapper, self).__init__("angelheap", gdb.COMMAND_USER)
+    def __init__(self, cmd_name, cmd_obj):
+        super(CmdWrapper, self).__init__(cmd_name, gdb.COMMAND_USER)
+        self.cmd_obj = cmd_obj
 
     def try_eval(self, expr):
         try:
@@ -110,15 +108,14 @@ class AngelHeapCmdWrapper(gdb.Command):
         return [expressions[0]] + [self.try_eval(expr) for expr in expressions[1:]]
 
     def invoke(self, args, from_tty):
-        global angelheap_cmd
         self.dont_repeat()
         expressions = gdb.string_to_argv(args)
         arg = self.eval_argv(expressions)
         if len(arg) > 0:
             cmd = arg[0]
 
-            if cmd in angelheap_cmd.commands:
-                func = getattr(angelheap_cmd, cmd)
+            if cmd in self.cmd_obj.commands:
+                func = getattr(self.cmd_obj, cmd)
                 func(*arg[1:])
             else:
                 print("Unknown command")
@@ -129,8 +126,6 @@ class AngelHeapCmdWrapper(gdb.Command):
 
 
 class Alias(gdb.Command):
-    """ angelheap Alias """
-
     def __init__(self, alias, command):
         self.command = command
         super(Alias, self).__init__(alias, gdb.COMMAND_NONE)
