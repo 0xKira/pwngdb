@@ -10,7 +10,7 @@ class AngelHeapCmd(object):
 
     def __init__(self):
         # list all commands
-        self.commands = [cmd for cmd in dir(self) if callable(getattr(self, cmd))]
+        self.commands = [cmd for cmd in dir(self) if callable(getattr(self, cmd)) and not cmd.startswith("_")]
 
     def tracemalloc(self, *arg):
         """ Trace the malloc and free and detect some error """

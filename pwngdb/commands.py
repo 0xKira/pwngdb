@@ -22,7 +22,7 @@ class PwnCmd(object):
 
     def __init__(self):
         # list all commands
-        self.commands = [cmd for cmd in dir(self) if callable(getattr(self, cmd))]
+        self.commands = [cmd for cmd in dir(self) if callable(getattr(self, cmd)) and not cmd.startswith("_")]
 
     def libc(self):
         """ Get libc base """
