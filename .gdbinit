@@ -1,6 +1,5 @@
 source ~/peda/peda.py
-source ~/pwngdb/pwngdb.py
-source ~/pwngdb/pwngdb/gdbinit.py
+source ~/pwngdb/gdbinit.py
 
 define hookpost-run
 python

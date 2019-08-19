@@ -1,3 +1,5 @@
+# !/usr/bin/env python3
+# -*- coding: utf-8 -*-
 def to_int(val):
     """
     Convert a string to int number
