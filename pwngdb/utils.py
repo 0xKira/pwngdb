@@ -22,14 +22,14 @@ def get_arch():
         return None, None, None
 
 
-def gdb_map():
+def get_gdb_map():
     """
     Use gdb command 'info proc mappings' to get the memory mapping
     Notice: No permission info
     """
     resp = gdb.execute("info proc mappings", to_string=True).split("\n")
     resp = '\n'.join(resp[i] for i in range(4, len(resp))).strip().split("\n")
-    infomap = ""
+    gdb_map = ""
     for l in resp:
         line = ""
         first = True
@@ -41,11 +41,11 @@ def gdb_map():
                 else:
                     line += sep + " "
         line = line.strip() + "\n"
-        infomap += line
-    return infomap
+        gdb_map += line
+    return gdb_map
 
 
-def proc_map():
+def get_proc_map():
     data = gdb.execute('info proc exe', to_string=True)
     pid = re.search('process.*', data)
     if pid:
@@ -54,11 +54,11 @@ def proc_map():
         fpath = "/proc/" + pid + "/maps"
         if os.path.isfile(fpath):  # if file exist, read memory mapping directly from file
             maps = open(fpath)
-            infomap = maps.read()
+            proc_map = maps.read()
             maps.close()
-            return infomap
+            return proc_map
         else:  # if file doesn't exist, use 'info proc mappings' to get the memory mapping
-            return gdb_map()
+            return get_gdb_map()
     else:
         return "error"
 

@@ -3,7 +3,7 @@ import gdb
 import subprocess
 import re
 from os import path, system
-from .utils import normalize_argv, proc_map
+from .utils import normalize_argv, get_proc_map
 
 # arch info
 capsize = 0
@@ -23,90 +23,90 @@ class PwnCmd(object):
     def __init__(self):
         # list all commands
         self.commands = set([cmd for cmd in dir(self) if callable(getattr(self, cmd)) and not cmd.startswith("_")])
-        self.no_eval_cmds = set(['off', 'bcall', 'searchcall', 'rop'])
+        self.no_eval_cmds = set(['off', 'bcall', 'findcall', 'rop'])
         self.normal_cmds = self.commands - self.no_eval_cmds
 
     def libc(self):
         """ Get libc base """
-        libcbs = libc_base()
-        if libcbs:
-            print("\033[34m" + "libc: " + "\033[37m" + hex(libcbs))
+        libc_base = get_libc_base()
+        if libc_base:
+            print("\033[34m" + "libc: " + "\033[37m" + hex(libc_base))
         else:
             print('libc not found')
 
     def getheap(self):
-        """ Get heapbase """
-        heapbase = getheapbase()
-        if heapbase:
-            print("\033[35m" + "heap: " + "\033[37m" + hex(heapbase))
+        """ Get heap base """
+        heap_base = get_heap_base()
+        if heap_base:
+            print("\033[35m" + "heap: " + "\033[37m" + hex(heap_base))
         else:
             print("heap not found")
 
     def ld(self):
         """ Get ld.so base """
-        ldbs = ldbase()
-        if ldbs:
-            print("\033[34m" + "ld: " + "\033[37m" + hex(ldbs))
+        ld_base = get_ld_base()
+        if ld_base:
+            print("\033[34m" + "ld: " + "\033[37m" + hex(ld_base))
         else:
-            print('ld base not found')
+            print('ld not found')
 
     def codebase(self):
-        """ Get text base """
-        codebs = codeaddr()[0]
-        if codebs:
-            print("\033[34m" + "text: " + "\033[37m" + hex(codebs))
+        """ Get code base """
+        code_base, _ = get_code_base()
+        if code_base:
+            print("\033[34m" + "code: " + "\033[37m" + hex(code_base))
         else:
-            print('code base not found')
+            print('code not found')
 
     def tls(self):
         """ Get tls base """
-        tls = gettls()
-        if tls:
-            print("\033[34m" + "tls: " + "\033[37m" + hex(tls))
+        tls_base = get_tls_base()
+        if tls_base:
+            print("\033[34m" + "tls: " + "\033[37m" + hex(tls_base))
         else:
             print('tls not found')
 
     def canary(self):
         """ Get canary value """
-        print("\033[34m" + "canary: " + "\033[37m" + hex(getcanary()))
+        print("\033[34m" + "canary: " + "\033[37m" + hex(get_canary()))
 
     def fmtarg(self, *arg):
         (addr, ) = normalize_argv(arg, 1)
-        getfmtarg(addr)
+        get_fmt_arg(addr)
 
     def off(self, *arg):
         """ Calculate offset to libc """
         (sym, ) = normalize_argv(arg, 1)
-        symaddr = getoff(sym)
-        if symaddr == 0xffffffffffffffff:
+        sym_off = get_off(sym)
+        if sym_off == 0xffffffffffffffff:
             print("Not found the symbol")
         else:
             if type(sym) is int:
-                print("\033[34m" + hex(sym) + ": " + "\033[37m" + hex(symaddr))
+                print("\033[34m" + hex(sym) + ": " + "\033[37m" + hex(sym_off))
             else:
-                print("\033[34m" + sym + ": " + "\033[37m" + hex(symaddr))
+                print("\033[34m" + sym + ": " + "\033[37m" + hex(sym_off))
 
     def fp(self, *arg):
         """ show FILE structure """
         (addr, ) = normalize_argv(arg, 1)
-        showfp(addr)
+        show_fp(addr)
 
     def fpchain(self):
         """ show FILE chain """
-        showfpchain()
+        show_fp_chain()
 
     def orange(self, *arg):
         """ test house of orange """
         (addr, ) = normalize_argv(arg, 1)
         if addr:
-            testorange(addr)
+            test_orange(addr)
         else:
             print("You need to specifiy an address")
 
     def fsop(self, *arg):
         """ test fsop """
         (addr, ) = normalize_argv(arg, 1)
-        testfsop(addr)
+        test_fsop(addr)
 
     def magic(self, *arg):
         """ Print usefual variables or function in glibc """
@@ -115,7 +115,7 @@ class PwnCmd(object):
 
     def findsyscall(self):
         """ find the syscall gadget """
-        start, end = codeaddr()
+        start, end = get_code_base()
         if arch == "x86-64":
             gdb.execute("searchmem 0x050f " + hex(start) + " " + hex(end))
         elif arch == "i386":
@@ -129,12 +129,12 @@ class PwnCmd(object):
 
     def got(self):
         """ Print the got table """
-        processname = getprocname()
-        if processname:
+        proc_name = get_proc_name()
+        if proc_name:
             cmd = "objdump -R "
             if is_cpp():
                 cmd += "--demangle "
-            cmd += '"{}"'.format(processname)
+            cmd += '"{}"'.format(proc_name)
             got = subprocess.check_output(cmd, shell=True)[:-2].decode('utf8')
             print(got)
         else:
@@ -142,18 +142,18 @@ class PwnCmd(object):
 
     def dyn(self):
         """ Print dynamic section """
-        processname = getprocname()
-        if processname:
-            dyn = subprocess.check_output('readelf -d "{}"'.format(processname), shell=True).decode('utf8')
+        proc_name = get_proc_name()
+        if proc_name:
+            dyn = subprocess.check_output('readelf -d "{}"'.format(proc_name), shell=True).decode('utf8')
             print(dyn)
         else:
             print("No current process or executable file specified.")
 
     def rop(self, *arg):
         """ ROPgadget """
-        procname = getprocname()
-        cmd = 'ROPgadget --binary "{}"'.format(procname)
-        if procname:
+        proc_name = get_proc_name()
+        cmd = 'ROPgadget --binary "{}"'.format(proc_name)
+        if proc_name:
             for s in arg:
                 cmd += ' | grep "{}"'.format(s)
             subprocess.call(cmd, shell=True)
@@ -163,20 +163,20 @@ class PwnCmd(object):
     def findcall(self, *arg):
         """ Find some function call """
         (sym, ) = normalize_argv(arg, 1)
-        output = searchcall(sym)
+        output = search_call(sym)
         print(output)
 
     def bcall(self, *arg):
         """ Set the breakpoint at some function call """
         (sym, ) = normalize_argv(arg, 1)
-        call = searchcall(sym)
+        call = search_call(sym)
         if not call:
             print("symbol not found")
         else:
-            if ispie():
-                codebaseaddr, codeend = codeaddr()
+            if is_pie():
+                code_start, code_end = get_code_base()
                 for callbase in call.split('\n')[:-1]:
-                    addr = int(callbase.split(':')[0], 16) + codebaseaddr
+                    addr = int(callbase.split(':')[0], 16) + code_start
                     cmd = "b*" + hex(addr)
                     gdb.execute(cmd)
             else:
@@ -187,42 +187,42 @@ class PwnCmd(object):
 
 
 def is_cpp():
-    name = getprocname()
-    data = subprocess.check_output("readelf -s " + name, shell=True).decode('utf8')
+    proc_name = get_proc_name()
+    data = subprocess.check_output("readelf -s " + proc_name, shell=True).decode('utf8')
     if "CXX" in data:
         return True
     else:
         return False
 
 
-def getprocname(relative=False):
-    procname = None
+def get_proc_name(relative=False):
+    proc_name = None
     try:
         data = gdb.execute("info proc exe", to_string=True)
-        procname = re.search("exe.*", data).group().split("=")[1][2:-1]
+        proc_name = re.search("exe.*", data).group().split("=")[1][2:-1]
     except:
         data = gdb.execute("info files", to_string=True)
         if data:
-            procname = re.search('Symbols from "(.*)"', data).group(1)
-    if procname and relative:
-        return procname.split("/")[-1]
-    return procname
+            proc_name = re.search('Symbols from "(.*)"', data).group(1)
+    if proc_name and relative:
+        return proc_name.split("/")[-1]
+    return proc_name
 
 
-def libc_base():
-    infomap = proc_map()
-    data = re.search(r".*libc.*\.so", infomap)
+def get_libc_base():
+    proc_map = get_proc_map()
+    data = re.search(r".*libc.*\.so", proc_map)
     if data:
-        libcaddr = data.group().split("-")[0]
-        gdb.execute("set $libc=%s" % hex(int(libcaddr, 16)))
-        return int(libcaddr, 16)
+        libc_base = data.group().split("-")[0]
+        gdb.execute("set $libc=%s" % hex(int(libc_base, 16)))
+        return int(libc_base, 16)
     else:
         return 0
 
 
-def ldbase():
-    infomap = proc_map()
-    data = re.search(r".*ld.*\.so", infomap)
+def get_ld_base():
+    proc_map = get_proc_map()
+    data = re.search(r".*ld.*\.so", proc_map)
     if data:
         ldaddr = data.group().split("-")[0]
         gdb.execute("set $ld=%s" % hex(int(ldaddr, 16)))
@@ -231,41 +231,41 @@ def ldbase():
         return 0
 
 
-def getheapbase():
-    infomap = proc_map()
-    data = re.search(r".*heap\]", infomap)
+def get_heap_base():
+    proc_map = get_proc_map()
+    data = re.search(r".*heap\]", proc_map)
     if data:
-        heapbase = data.group().split("-")[0]
-        gdb.execute("set $heap=%s" % hex(int(heapbase, 16)))
-        return int(heapbase, 16)
+        heap_base = data.group().split("-")[0]
+        gdb.execute("set $heap=%s" % hex(int(heap_base, 16)))
+        return int(heap_base, 16)
     else:
         return 0
 
 
-def codeaddr():  # ret (start,end)
-    infomap = proc_map()
-    procname = getprocname()
-    pat = ".*" + procname
-    data = re.findall(pat, infomap)
+def get_code_base():  # ret (start,end)
+    proc_map = get_proc_map()
+    proc_name = get_proc_name()
+    pat = ".*" + proc_name
+    data = re.findall(pat, proc_map)
     if data:
-        codebaseaddr = data[0].split("-")[0]
-        codeend = data[0].split("-")[1].split()[0]
-        gdb.execute("set $code=%s" % hex(int(codebaseaddr, 16)))
-        return (int(codebaseaddr, 16), int(codeend, 16))
+        code_start = data[0].split("-")[0]
+        code_end = data[0].split("-")[1].split()[0]
+        gdb.execute("set $code=%s" % hex(int(code_start, 16)))
+        return (int(code_start, 16), int(code_end, 16))
     else:
         return (0, 0)
 
 
-def gettls():
+def get_tls_base():
     if arch == "i386":
         vsysaddr = gdb.execute("info functions __kernel_vsyscall", to_string=True).split("\n")[-2].split()[0].strip()
         sysinfo = gdb.execute("searchmem " + vsysaddr, to_string=True)
         match = re.search(r"mapped : .*(0x[0-9a-z]{8})", sysinfo)
         if match:
-            tlsaddr = int(match.groups()[0], 16) - 0x10
+            tls_base = int(match.groups()[0], 16) - 0x10
         else:
             return 0
-        return tlsaddr
+        return tls_base
     elif arch == "x86-64":
         gdb.execute("call (int)arch_prctl(0x1003, $rsp-8)", to_string=True)
         data = gdb.execute("x/xg $rsp-8", to_string=True)
@@ -274,24 +274,24 @@ def gettls():
         return 0
 
 
-def getcanary():
-    tlsaddr = gettls()
-    if not tlsaddr:
+def get_canary():
+    tls_base = get_tls_base()
+    if not tls_base:
         return 'error'
     if arch == "i386":
         offset = 0x14
-        result = gdb.execute("x/xw " + hex(tlsaddr + offset), to_string=True).split(":")[1].strip()
+        result = gdb.execute("x/xw " + hex(tls_base + offset), to_string=True).split(":")[1].strip()
         return int(result, 16)
     elif arch == "x86-64":
         offset = 0x28
-        result = gdb.execute("x/xg " + hex(tlsaddr + offset), to_string=True).split(":")[1].strip()
+        result = gdb.execute("x/xg " + hex(tls_base + offset), to_string=True).split(":")[1].strip()
         return int(result, 16)
     else:
         return "error"
 
 
-def getoff(sym):
-    libc = libc_base()
+def get_off(sym):
+    libc = get_libc_base()
     if type(sym) is int:
         return sym - libc
     else:
@@ -300,20 +300,19 @@ def getoff(sym):
             if "No symbol" in data:
                 return 0xffffffffffffffff
             else:
-                data = re.search("0x.*[0-9a-f] ", data)
-                data = data.group()
-                symaddr = int(data[:-1], 16)
-                return symaddr - libc
+                data = re.search("0x.*[0-9a-f] ", data).group()
+                sym_addr = int(data[:-1], 16)
+                return sym_addr - libc
         except:
             return 0xffffffffffffffff
 
 
-def searchcall(sym):
-    procname = getprocname()
+def search_call(sym):
+    proc_name = get_proc_name()
     cmd = "objdump -d -M intel "
     if is_cpp():
         cmd += "--demangle "
-    cmd += '"{}"'.format(procname)
+    cmd += '"{}"'.format(proc_name)
     try:
         call = subprocess.check_output(cmd + "| grep \"call.*" + sym + "@plt>\"", shell=True).decode('utf8')
         return call
@@ -321,9 +320,9 @@ def searchcall(sym):
         return ''
 
 
-def ispie():
-    procname = getprocname()
-    result = subprocess.check_output("readelf -h " + "\"" + procname + "\"", shell=True).decode('utf8')
+def is_pie():
+    proc_name = get_proc_name()
+    result = subprocess.check_output('readelf -h "{}"'.format(proc_name), shell=True).decode('utf8')
     if re.search("DYN", result):
         return True
     else:
@@ -336,7 +335,7 @@ def get_reg(reg):
     return result
 
 
-def showfp(addr):
+def show_fp(addr):
     if addr:
         cmd = "p *(struct _IO_FILE_plus *)" + hex(addr)
         try:
@@ -347,7 +346,7 @@ def showfp(addr):
         print("You need to specify an address")
 
 
-def showfpchain():
+def show_fp_chain():
     cmd = "x/" + word + "&_IO_list_all"
     head = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
     print("\033[32mfpchain:\033[1;37m ", end="")
@@ -364,7 +363,7 @@ def showfpchain():
         print("Chain is corrupted")
 
 
-def testorange(addr):
+def test_orange(addr):
     result = True
     cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(addr) + ").file._mode"
     mode = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16) & 0xffffffff
@@ -400,7 +399,7 @@ def testorange(addr):
         print("Result : \033[31mFalse\033[1;37m")
 
 
-def testfsop(addr=None):
+def test_fsop(addr=None):
     if addr:
         cmd = "x/" + word + hex(addr)
     else:
@@ -408,19 +407,19 @@ def testfsop(addr=None):
     head = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
     chain = head
     print("---------- fp : 0x%x ----------" % chain)
-    testorange(chain)
+    test_orange(chain)
     try:
         while chain != 0:
             cmd = "x/" + word + "&((struct _IO_FILE_plus *)" + hex(chain) + ").file._chain"
             chain = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
             if chain != 0:
                 print("---------- fp : 0x%x ----------" % chain)
-                testorange(chain)
+                test_orange(chain)
     except:
         print("Chain is corrupted")
 
 
-def getfmtarg(addr):
+def get_fmt_arg(addr):
     if arch == "i386":
         start = get_reg("esp")
         idx = (addr - start) / 4
@@ -435,16 +434,16 @@ def getfmtarg(addr):
 
 def show_magic(show_one):
     try:
-        infomap = proc_map()
-        libc = libc_base()
-        data = re.findall(r'\S*libc.*\.so.*', infomap)
+        proc_map = get_proc_map()
+        libc = get_libc_base()
+        data = re.findall(r'\S*libc.*\.so.*', proc_map)
         if data:
             libc_path = data[0].split()[-1]
         print("========== function ==========")
         for f in magic_function:
             cmd = "x/" + word + "&" + f
             func_addr = gdb.execute(cmd, to_string=True).split()[0].strip()
-            to_print = "\033[34m%s\033[33m(%s)\033[37m" % (f, hex(getoff(f)))
+            to_print = "\033[34m%s\033[33m(%s)\033[37m" % (f, hex(get_off(f)))
             to_print = to_print.ljust(36 + 15, ' ') + func_addr
             print(to_print)
         print("\033[00m========== variables ==========")
@@ -453,7 +452,7 @@ def show_magic(show_one):
             output = gdb.execute(cmd, to_string=True)
             var_addr = output.split()[0].strip()
             var_content = output.split(':')[1].strip()
-            offset = hex(getoff("&" + v))
+            offset = hex(get_off("&" + v))
             to_print = '\033[34m%s\033[33m(%s)\033[37m' % (v, offset)
             to_print = to_print.ljust(36 + 15, ' ')
             to_print += '%s: \033[37m%s' % (var_addr, var_content)

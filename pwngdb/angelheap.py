@@ -7,7 +7,7 @@ import copy
 import struct
 import os
 from .utils import get_arch
-from .commands import libc_base
+from .commands import get_libc_base
 from . import commands
 
 # main_arena
@@ -324,7 +324,7 @@ def Malloc_consolidate():
 
 
 def getoff(sym):
-    libc = libc_base()
+    libc = get_libc_base()
     if type(sym) is int:
         return sym - libc
     else:
@@ -366,7 +366,7 @@ def set_main_arena():
             "Cannot get main_arena's symbol address. Make sure you install libc debug file (libc6-dbg & libc6-dbg:i386 for debian package)."
         )
         return
-    libc = libc_base()
+    libc = get_libc_base()
     main_arena_off = offset
     main_arena = libc + main_arena_off
 
@@ -571,7 +571,7 @@ def trace_normal_bin(chunkhead, arena=None):
     global free_mem_area
     if not arena:
         arena = main_arena
-    libc = libc_base()
+    libc = get_libc_base()
     bins = []
     if chunkhead["addr"] == 0:  # main_arena not initial
         return None
