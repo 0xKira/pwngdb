@@ -108,48 +108,10 @@ class PwnCmd(object):
         (addr, ) = normalize_argv(arg, 1)
         testfsop(addr)
 
-    def magic(self):
+    def magic(self, *arg):
         """ Print usefual variables or function in glibc """
-        try:
-            infomap = proc_map()
-            libc = libc_base()
-            data = re.findall(r'\S*libc.*\.so.*', infomap)
-            if data:
-                libc_path = data[0].split()[-1]
-            print("========== function ==========")
-            for f in magic_function:
-                cmd = "x/" + word + "&" + f
-                func_addr = gdb.execute(cmd, to_string=True).split()[0].strip()
-                to_print = "\033[34m%s\033[33m(%s)\033[37m" % (f, hex(getoff(f)))
-                to_print = to_print.ljust(36 + 15, ' ') + func_addr
-                print(to_print)
-            print("\033[00m========== variables ==========")
-            for v in magic_variable:
-                cmd = "x/" + word + "&" + v
-                output = gdb.execute(cmd, to_string=True)
-                var_addr = output.split()[0].strip()
-                var_content = output.split(':')[1].strip()
-                offset = hex(getoff("&" + v))
-                to_print = '\033[34m%s\033[33m(%s)\033[37m' % (v, offset)
-                to_print = to_print.ljust(36 + 15, ' ')
-                to_print += '%s: \033[37m%s' % (var_addr, var_content)
-                print(to_print)
-            if libc_path:
-                cmd = 'strings -t x {} | grep "/bin/sh"'.format(libc_path)
-                binsh_off = subprocess.check_output(cmd, shell=True).decode('utf8').split()[0]
-                binsh_addr = libc + int(binsh_off, 16)
-                cmd = "x/" + word + hex(binsh_addr)
-                binsh_content = gdb.execute(cmd, to_string=True).split(':')[1].strip()
-                to_print = '\033[34m"/bin/sh"\033[33m(0x%s)\033[37m' % binsh_off
-                to_print = to_print.ljust(36 + 15, ' ')
-                to_print += '0x%x: \033[37m%s' % (binsh_addr, binsh_content)
-                print(to_print)
-                # print one gadget
-                if path.isfile('/usr/local/bin/one_gadget'):
-                    print("========== one gadget ==========")
-                    system("one_gadget {}".format(libc_path))
-        except:
-            print("You need run the program first")
+        (show_one, ) = normalize_argv(arg, 1)
+        show_magic(show_one)
 
     def findsyscall(self):
         """ find the syscall gadget """
@@ -469,3 +431,46 @@ def getfmtarg(addr):
         print('The index of format argument : %d ("%%%d$p")' % (idx, idx - 1))
     else:
         print("Not support the arch")
+
+
+def show_magic(show_one):
+    try:
+        infomap = proc_map()
+        libc = libc_base()
+        data = re.findall(r'\S*libc.*\.so.*', infomap)
+        if data:
+            libc_path = data[0].split()[-1]
+        print("========== function ==========")
+        for f in magic_function:
+            cmd = "x/" + word + "&" + f
+            func_addr = gdb.execute(cmd, to_string=True).split()[0].strip()
+            to_print = "\033[34m%s\033[33m(%s)\033[37m" % (f, hex(getoff(f)))
+            to_print = to_print.ljust(36 + 15, ' ') + func_addr
+            print(to_print)
+        print("\033[00m========== variables ==========")
+        for v in magic_variable:
+            cmd = "x/" + word + "&" + v
+            output = gdb.execute(cmd, to_string=True)
+            var_addr = output.split()[0].strip()
+            var_content = output.split(':')[1].strip()
+            offset = hex(getoff("&" + v))
+            to_print = '\033[34m%s\033[33m(%s)\033[37m' % (v, offset)
+            to_print = to_print.ljust(36 + 15, ' ')
+            to_print += '%s: \033[37m%s' % (var_addr, var_content)
+            print(to_print)
+        if libc_path:
+            cmd = 'strings -t x {} | grep "/bin/sh"'.format(libc_path)
+            binsh_off = subprocess.check_output(cmd, shell=True).decode('utf8').split()[0]
+            binsh_addr = libc + int(binsh_off, 16)
+            cmd = "x/" + word + hex(binsh_addr)
+            binsh_content = gdb.execute(cmd, to_string=True).split(':')[1].strip()
+            to_print = '\033[34m"/bin/sh"\033[33m(0x%s)\033[37m' % binsh_off
+            to_print = to_print.ljust(36 + 15, ' ')
+            to_print += '0x%x: \033[37m%s' % (binsh_addr, binsh_content)
+            print(to_print)
+            # print one gadget
+            if show_one and path.isfile('/usr/local/bin/one_gadget'):
+                print("========== one gadget ==========")
+                system("one_gadget {}".format(libc_path))
+    except:
+        print("You need run the program first")
