@@ -132,7 +132,7 @@ class PwnCmd(object):
         processname = getprocname()
         if processname:
             cmd = "objdump -R "
-            if iscplus:
+            if is_cpp():
                 cmd += "--demangle "
             cmd += '"{}"'.format(processname)
             got = subprocess.check_output(cmd, shell=True)[:-2].decode('utf8')
@@ -186,7 +186,7 @@ class PwnCmd(object):
                     gdb.execute(cmd)
 
 
-def iscplus():
+def is_cpp():
     name = getprocname()
     data = subprocess.check_output("readelf -s " + name, shell=True).decode('utf8')
     if "CXX" in data:
@@ -311,7 +311,7 @@ def getoff(sym):
 def searchcall(sym):
     procname = getprocname()
     cmd = "objdump -d -M intel "
-    if iscplus:
+    if is_cpp():
         cmd += "--demangle "
     cmd += '"{}"'.format(procname)
     try:
