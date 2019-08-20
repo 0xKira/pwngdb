@@ -78,7 +78,7 @@ class PwnCmd(object):
         """ Calculate offset to libc """
         (sym, ) = normalize_argv(arg, 1)
         symaddr = getoff(sym)
-        if symaddr == 0:
+        if symaddr == 0xffffffffffffffff:
             print("Not found the symbol")
         else:
             if type(sym) is int:
@@ -298,14 +298,14 @@ def getoff(sym):
         try:
             data = gdb.execute("x/x " + sym, to_string=True)
             if "No symbol" in data:
-                return 0
+                return 0xffffffffffffffff
             else:
                 data = re.search("0x.*[0-9a-f] ", data)
                 data = data.group()
                 symaddr = int(data[:-1], 16)
                 return symaddr - libc
         except:
-            return 0
+            return 0xffffffffffffffff
 
 
 def searchcall(sym):
