@@ -63,6 +63,7 @@ If you want to use the feature of heapinfo and tracemalloc , you need to install
 + `checkheap`: Show the histroy of one address in heap
     + You need `tracemalloc on` first.
 + `magic` : Print useful variables, functions and one gadget in glibc
+    + magic [anything] add any arg to show one gadget
 + `fp` : show FILE structure
   + fp (Address of FILE)
 + `fpchain`: show linked list of FILE
