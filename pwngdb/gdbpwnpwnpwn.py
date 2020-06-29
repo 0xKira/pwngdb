@@ -67,6 +67,9 @@ def init(output=True):
         if gdb.breakpoints():
             breakpoints = []
             for br in gdb.breakpoints():
+                if not br.location:  # watchpoint will be None
+                    br.delete()
+                    continue
                 # won't delete symbol breakpoint
                 find = re.findall('^\*((?:0x)?[0-9a-fA-F]+)$', br.location)
                 if find:
