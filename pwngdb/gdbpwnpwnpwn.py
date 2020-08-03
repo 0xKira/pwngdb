@@ -24,8 +24,9 @@ def set_current_pid():
 def set_elf_base(proc_name, output):
     global elf_base, elf_base_old
     elf_base_old = elf_base
-    patt = re.compile(r'.*?([0-9a-f]+)\-[0-9a-f]+\s+r-xp.*?%s' % proc_name)
-    vmmap = check_output(['cat', '/proc/%s/maps' % pid]).decode()
+    patt = re.compile(r'.*?([0-9a-f]+)\-[0-9a-f]+\s+...p.*?%s' % proc_name)
+    with open('/proc/{}/maps'.format(pid), 'rb') as f:
+        vmmap = f.read().decode()
     elf_base = int(patt.findall(vmmap)[0], 16)
     if output:
         print("\033[32m" + 'text:' + "\033[37m", hex(elf_base))
