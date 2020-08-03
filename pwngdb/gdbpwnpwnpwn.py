@@ -137,12 +137,8 @@ class PieExamineMem(gdb.Command):
         super(PieExamineMem, self).__init__("xx", gdb.COMMAND_SUPPORT, gdb.COMPLETE_EXPRESSION)
 
     def invoke(self, arg, from_tty):
-        offset = arg.split(' ')[0].strip()
-        if len(offset) == 0:
-            print('I need an memory location:(')
-            return
         if is_pie_on:
-            gdb.execute('x{}+0x{:x}'.format(arg.rstrip(), elf_base))
+            gdb.execute('x {}+0x{:x}'.format(arg.rstrip(), elf_base))
         else:
             gdb.execute('x' + arg)
 
