@@ -71,6 +71,7 @@ class PwnCmd(object):
         print("\033[34m" + "canary: " + "\033[37m" + hex(get_canary()))
 
     def fmtarg(self, *arg):
+        """ Calculate format argument offset """
         (addr, ) = normalize_argv(arg, 1)
         get_fmt_arg(addr)
 
@@ -420,13 +421,16 @@ def test_fsop(addr=None):
 
 
 def get_fmt_arg(addr):
+    if not addr:
+        print("You need to specify a stack address")
+        return
     if arch == "i386":
         start = get_reg("esp")
-        idx = (addr - start) / 4
+        idx = (addr - start) / 4 + 1
         print('The index of format argument : %d ("%%%d$p")' % (idx, idx - 1))
     elif arch == "x86-64":
         start = get_reg("rsp")
-        idx = (addr - start) / 8 + 6
+        idx = (addr - start) / 8 + 7
         print('The index of format argument : %d ("%%%d$p")' % (idx, idx - 1))
     else:
         print("Not support the arch")

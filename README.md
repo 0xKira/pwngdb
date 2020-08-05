@@ -40,7 +40,7 @@ If you want to use the feature of heapinfo and tracemalloc , you need to install
 + `bcall` : Set the breakpoint at some function call
 + `findsyscall` : Find the syscall (0x050f)
 + `fmtarg` : Calculate the index of format string
-  + You need to stop on printf which has vulnerability.
+  + You need to stop on printf(the call instruction) which has vulnerability.
 + `force` : Calculate the nb in the house of force.
 + `heapinfo` : Print some infomation of heap
   + heapinfo (Address of arena)
