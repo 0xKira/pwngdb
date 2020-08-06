@@ -97,7 +97,7 @@ class ReattachCommand(gdb.Command):
         if len(fn) > 0:
             proc_name = fn
         else:
-            get_proc_name()
+            proc_name = get_proc_name()
         if not proc_name:
             print('Please specify program name first!')
             return
@@ -124,6 +124,10 @@ class PieBreak(gdb.Command):
         offset = arg.split(' ')[0].strip()
         if len(offset) == 0:
             print('I need an offset:(')
+            return
+        if pid == 0:
+            print('Please run your program first, '
+                  'use \033[32mstart\033[0m/\033[32mstarti\033[0m to stop at the beginning.')
             return
         if is_pie_on:
             gdb.execute('b *%d' % (int(gdb.parse_and_eval(offset).cast(gdb.lookup_type('long'))) + elf_base))
