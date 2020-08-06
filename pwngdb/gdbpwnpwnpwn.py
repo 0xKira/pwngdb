@@ -111,7 +111,10 @@ class ReattachCommand(gdb.Command):
                 raise e
 
         pid = pid.decode().split(' ')[0]
-        gdb.execute('attach ' + pid)
+        try:
+            gdb.execute('attach ' + pid)
+        except gdb.error as e:
+            raise gdb.GdbError(e)
 
 
 class PieBreak(gdb.Command):
