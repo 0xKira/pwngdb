@@ -73,6 +73,7 @@ def init(output=True):
                     continue
                 # won't delete symbol breakpoint
                 find = re.findall('^\*((?:0x)?[0-9a-fA-F]+)$', br.location)
+                # TODO: convert number to symbol if possible
                 if find:
                     location = int(find[0], 0)  # let python figure out the base
                     breakpoints.append(location - elf_base_old)
