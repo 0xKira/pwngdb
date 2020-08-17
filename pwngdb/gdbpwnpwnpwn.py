@@ -134,9 +134,15 @@ class PieBreak(gdb.Command):
                   'use \033[32mstart\033[0m/\033[32mstarti\033[0m to stop at the beginning.')
             return
         if is_pie_on:
-            gdb.execute('b *%d' % (int(gdb.parse_and_eval(offset).cast(gdb.lookup_type('long'))) + elf_base))
+            bp_addr = int(gdb.parse_and_eval(offset).cast(gdb.lookup_type('long'))) + elf_base
         else:
-            gdb.execute('b *%d' % (gdb.parse_and_eval(offset)))
+            bp_addr = gdb.parse_and_eval(offset)
+        out = gdb.execute('info symbol {}'.format(bp_addr), to_string=True)
+        if 'No symbol matches' in out:
+            gdb.execute('b *{}'.format(bp_addr))
+        else:
+            sym = re.search('(.*?) in section', out).group(1)
+            gdb.execute('b *{}'.format(sym))
 
 
 class PieExamineMem(gdb.Command):
