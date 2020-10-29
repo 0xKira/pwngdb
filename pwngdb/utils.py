@@ -5,6 +5,18 @@ import re
 import os
 
 
+def get_libc_version():
+    try:
+        return float(gdb.execute("x/s __libc_version", to_string=True).split()[2].strip("\""))
+    except:
+        print("Can not get libc version")
+        return 0
+
+
+def reveal_ptr(addr_of_entry, entry):
+    return (addr_of_entry >> 12) ^ entry
+
+
 def get_arch():
     data = gdb.execute('show arch', to_string=True)
     tmp = re.search("currently.*", data)

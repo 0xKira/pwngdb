@@ -6,7 +6,7 @@ import re
 import copy
 import struct
 import os
-from .utils import get_arch
+from .utils import get_arch, get_libc_version, reveal_ptr
 from .commands import get_libc_base
 from . import commands
 
@@ -45,6 +45,7 @@ free_record = {}  # using in trace
 all_record = []
 
 # setting for tracing memory allocation
+enable_reveal_ptr = False
 trace_largebin = True
 in_memalign = False
 in_realloc = False
@@ -457,8 +458,11 @@ def get_fast_bin(arena=None):
             fastbin[i].append(copy.deepcopy(chunk))
             fastchunk.append(chunk["addr"])
             cmd = "x/" + word + hex(chunk["addr"] + capsize * 2)
+            ref_chunk_addr = chunk["addr"] + capsize * 2
             chunk = {}
             chunk["addr"] = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
+            if chunk["addr"] and enable_reveal_ptr:
+                 chunk["addr"] = reveal_ptr(ref_chunk_addr, chunk["addr"])
         if not is_overlap[0]:
             chunk["size"] = 0
             chunk["overlap"] = None
@@ -497,8 +501,12 @@ def get_tcache():
             tcache_enable = True
             tcache = int(gdb.execute("x/" + word + "&tcache", to_string=True).split(":")[1].strip(), 16)
             tps_size = int(gdb.execute("p/x sizeof(*tcache)", to_string=True).split("=")[1].strip(), 16)
-            if tps_size > 0x240:
-                tcache_counts_size = 2
+            if capsize == 4:
+                if tps_size > 0x140:
+                    tcache_counts_size = 2
+            else:
+                if tps_size > 0x240:
+                    tcache_counts_size = 2
         except gdb.error:
             heapbase = get_heapbase()
             if heapbase != 0:
@@ -509,8 +517,12 @@ def get_tcache():
                     cmd = "x/" + word + hex(heapbase + capsize * 1)
                     f_size = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
                 tcache = heapbase + capsize * 2
-                if (f_size & ~7) - 0x10 > 0x240:
-                    tcache_counts_size = 2
+                if capsize == 4:
+                    if (f_size & ~7) - 0x10 > 0x140:
+                        tcache_counts_size = 2
+                else:
+                    if (f_size & ~7) - 0x10 > 0x240:
+                        tcache_counts_size = 2
             else:
                 tcache = 0
     except gdb.error:
@@ -549,6 +561,11 @@ def get_tcache_entry():
             entry = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
             while entry and not is_overlap[0]:
                 chunk["addr"] = entry - capsize * 2
+                if ((entry & -capsize) != entry) and enable_reveal_ptr:
+                    chunk["memerror"] = "unaligned tcache chunk"
+                    tcache_entry[i].append(copy.deepcopy(chunk))
+                    break
+
                 cmd = "x/" + word + hex(chunk["addr"] + capsize)
                 try:
                     chunk["size"] = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16) & 0xfffffffffffffff8
@@ -556,15 +573,19 @@ def get_tcache_entry():
                     chunk["memerror"] = "invaild memory"
                     tcache_entry[i].append(copy.deepcopy(chunk))
                     break
-                is_overlap = check_overlap(chunk["addr"], capsize * 2 * (i + 2))
+                is_overlap = check_overlap(chunk["addr"], chunk["size"])
+
                 chunk["overlap"] = is_overlap
-                free_mem_area[hex(chunk["addr"])] = copy.deepcopy(
-                    (chunk["addr"], chunk["addr"] + (capsize * 2) * (i + 2), chunk))
+                free_mem_area[hex(chunk["addr"])] = copy.deepcopy((chunk["addr"], chunk["addr"] + chunk["size"], chunk))
                 tcache_entry[i].append(copy.deepcopy(chunk))
                 all_tcache_entry.append(chunk["addr"])
                 cmd = "x/" + word + hex(chunk["addr"] + capsize * 2)
                 chunk = {}
                 entry = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
+                if entry and enable_reveal_ptr:
+                    entry = reveal_ptr(chunk["addr"] + capsize * 2, entry)
+
+                chunk = {}
 
 
 def trace_normal_bin(chunkhead, arena=None):
@@ -663,22 +684,27 @@ def get_unsortbin(arena=None):
 
 
 def get_smallbin(arena=None):
-    global smallbin
+    global smallbin, tcache_enable, bin_corrupt
     if not arena:
         arena = main_arena
     smallbin = {}
     max_smallbin_size = 512 * int(capsize / 4)
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(arena) + ").bins"
     bins_addr = int(gdb.execute(cmd, to_string=True).split(":")[0].split()[0].strip(), 16)
-    for size in range(capsize * 4, max_smallbin_size, capsize * 2):
+    cur_size = 8 if tcache_enable else capsize
+    for size in range(capsize * 4, max_smallbin_size, cur_size * 2):
         chunkhead = {}
         idx = int((size / (capsize * 2))) - 1
+        if tcache_enable and capsize == 4:
+            idx = int(size / (cur_size * 2))
+        else:
+            idx = int(size / (cur_size * 2)) - 1
         cmd = "x/" + word + hex(bins_addr + idx * capsize * 2)  # calc the smallbin index
         chunkhead["addr"] = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
         try:
             bins = trace_normal_bin(chunkhead, arena)
         except:
-            corruptbin = True
+            bin_corrupt = True
             bins = None
         if bins and len(bins) > 0:
             smallbin[hex(size)] = copy.deepcopy(bins)
@@ -749,14 +775,19 @@ def get_heap_info(arena=None):
     global thread_arena
     global free_mem_area
     global top
+    global enable_reveal_ptr
     global tcache_enable
     global tcache
+    global bin_corrupt
 
     top = {}
     free_mem_area = {}
-    corruptbin = False
+    bin_corrupt = False
 
+    if get_libc_version() > 2.31:
+        enable_reveal_ptr = True
     if arena:
+        get_tcache_entry()
         get_system_mem(arena)
         get_unsortbin(arena)
         get_smallbin(arena)
@@ -764,12 +795,12 @@ def get_heap_info(arena=None):
             get_largebin(arena)
         get_fast_bin(arena)
         get_top_lastremainder(arena)
-        get_tcache_entry()
         return True
 
     set_main_arena()
     set_thread_arena()
     if thread_arena and enable_thread:
+        get_tcache_entry()
         get_system_mem(thread_arena)
         get_unsortbin(thread_arena)
         get_smallbin(thread_arena)
@@ -777,10 +808,10 @@ def get_heap_info(arena=None):
             get_largebin(thread_arena)
         get_fast_bin(thread_arena)
         get_top_lastremainder(thread_arena)
-        get_tcache_entry()
         return True
 
     elif main_arena and not enable_thread:
+        get_tcache_entry()
         get_system_mem()
         get_unsortbin()
         get_smallbin()
@@ -788,7 +819,6 @@ def get_heap_info(arena=None):
             get_largebin()
         get_fast_bin()
         get_top_lastremainder()
-        get_tcache_entry()
         return True
     return False
 
@@ -1152,12 +1182,12 @@ def putfastbin(arena=None):
         print("Can't find heap info")
         return False
     for i, bins in enumerate(fastbin):
-        cursize = (capsize * 2) * (i + 2)
-        print("\033[32m(0x%02x)     fastbin[%d]:\033[37m " % (cursize, i), end="")
+        cur_size = (capsize * 2) * (i + 2)
+        print("\033[32m(0x%02x)     fastbin[%d]:\033[37m " % (cur_size, i), end="")
         for chunk in bins:
             if "memerror" in chunk:
                 print("\033[31m0x%x (%s)\033[37m" % (chunk["addr"], chunk["memerror"]), end="")
-            elif chunk["size"] != cursize and chunk["addr"] != 0:
+            elif chunk["size"] != cur_size and chunk["addr"] != 0:
                 print("\033[36m0x%x (size error (0x%x))\033[37m" % (chunk["addr"], chunk["size"]), end="")
             elif chunk["overlap"] and chunk["overlap"][0]:
                 print("\033[31m0x%x (overlap chunk with \033[36m0x%x(%s)\033[31m )\033[37m" %
@@ -1184,16 +1214,16 @@ def put_tcache():
         return
     for i, entry in enumerate(tcache_entry):
         if capsize == 4:
-            cursize = 16 * (i + 1)
+            cur_size = 16 * (i + 1)
         else:
-            cursize = 16 * (i + 2)
+            cur_size = 16 * (i + 2)
         if len(tcache_entry[i]) > 0:
             print("\033[33;1m(0x%02x)   tcache_entry[%d]\033[32m(%d)\033[33;1m:\033[37m " %
-                  (cursize, i, tcache_count[i]),
+                  (cur_size, i, tcache_count[i]),
                   end="")
         elif tcache_count[i] > 0:
             print("\033[33;1m(0x%02x)   tcache_entry[%d]\033[31;1m(%d)\033[33;1m:\033[37m 0\n" %
-                  (cursize, i, tcache_count[i]),
+                  (cur_size, i, tcache_count[i]),
                   end="")
         for chunk in entry:
             if "memerror" in chunk:
@@ -1258,7 +1288,8 @@ def putheapinfo(arena=None):
     put_unsorted(True)
 
     for size, bins in smallbin.items():
-        idx = int((int(size, 16) / (capsize * 2))) - 2
+        cur_size = 8 if tcache_enable else capsize
+        idx = int(int(size, 16) / (cur_size * 2)) - 2
         print("\033[33m(0x%03x)  %s[%2d]:\033[37m " % (int(size, 16), "smallbin", idx), end="")
         for chunk in bins:
             if "memerror" in chunk:
@@ -1314,8 +1345,8 @@ def putarenainfo():
             count = 0
             print("  Main Arena  ".center(50, "="))
             putheapinfo(main_arena)
-            cur_arena = int(
-                gdb.execute("x/" + word + hex(main_arena + nextoff), to_string=True).split(":")[1].strip(), 16)
+            cmd = "x/" + word + "&main_arena.next"
+            cur_arena = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
             while cur_arena != main_arena:
                 count += 1
                 print(("  Arena " + str(count) + "  ").center(50, "="))
