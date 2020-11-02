@@ -88,8 +88,7 @@ def init_angelheap():
 
 
 class Malloc_bp_ret(gdb.FinishBreakpoint):
-    global alloc_mem_area
-    global free_record
+    global alloc_mem_area, free_record
 
     def __init__(self, arg):
         gdb.FinishBreakpoint.__init__(self, gdb.newest_frame(), internal=True)
@@ -173,11 +172,7 @@ class Free_bp_ret(gdb.FinishBreakpoint):
 
 class Free_Bp_handler(gdb.Breakpoint):
     def stop(self):
-        global alloc_mem_area
-        global free_record
-        global in_memalign
-        global in_realloc
-        global all_record
+        global alloc_mem_area, free_record, in_memalign, in_realloc, all_record
         get_top_lastremainder()
 
         if arch == "x86-64":
@@ -314,8 +309,7 @@ def Update_alloca():
 
 def Malloc_consolidate():
     """ merge fastbin when malloc a large chunk or free a very large chunk """
-    global fastbin
-    global free_record
+    global fastbin, free_record
 
     free_record = {}
     if not get_heap_info():
@@ -343,9 +337,7 @@ def getoff(sym):
 
 
 def set_thread_arena():
-    global thread_arena
-    global main_arena
-    global enable_thread
+    global thread_arena, main_arena, enable_thread
     try:
         data = gdb.execute("x/" + word + "&thread_arena", to_string=True)
     except:
@@ -358,8 +350,7 @@ def set_thread_arena():
 
 
 def set_main_arena():
-    global main_arena
-    global main_arena_off
+    global main_arena, main_arena_off
 
     offset = getoff("&main_arena")
     if offset == 0:  # no main_arena symbol
@@ -367,9 +358,8 @@ def set_main_arena():
             "Cannot get main_arena's symbol address. Make sure you install libc debug file (libc6-dbg & libc6-dbg:i386 for debian package)."
         )
         return
-    libc = get_libc_base()
     main_arena_off = offset
-    main_arena = libc + main_arena_off
+    main_arena = get_libc_base() + main_arena_off
 
 
 def check_overlap(addr, size, data=None):
@@ -391,9 +381,7 @@ def check_overlap(addr, size, data=None):
 
 
 def get_top_lastremainder(arena=None):
-    global fastbin_size
-    global top
-    global last_remainder
+    global fastbin_size, top, last_remainder
     if not arena:
         arena = main_arena
     chunk = {}
@@ -425,10 +413,7 @@ def get_top_lastremainder(arena=None):
 
 
 def get_fast_bin(arena=None):
-    global fastbin
-    global fastchunk
-    global fastbin_size
-    global free_mem_area
+    global fastbin, fastchunk, fastbin_size, free_mem_area
 
     if not arena:
         arena = main_arena
@@ -462,7 +447,7 @@ def get_fast_bin(arena=None):
             chunk = {}
             chunk["addr"] = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
             if chunk["addr"] and enable_reveal_ptr:
-                 chunk["addr"] = reveal_ptr(ref_chunk_addr, chunk["addr"])
+                chunk["addr"] = reveal_ptr(ref_chunk_addr, chunk["addr"])
         if not is_overlap[0]:
             chunk["size"] = 0
             chunk["overlap"] = None
@@ -490,10 +475,7 @@ def thread_cmd_execute(thread_id, thread_cmd):
 
 
 def get_tcache():
-    global tcache
-    global tcache_enable
-    global tcache_max_bin
-    global tcache_counts_size
+    global tcache, tcache_enable, tcache_max_bin, tcache_counts_size
 
     try:
         tcache_max_bin = int(gdb.execute("x/" + word + " &mp_.tcache_bins", to_string=True).split(":")[1].strip(), 16)
@@ -592,7 +574,6 @@ def trace_normal_bin(chunkhead, arena=None):
     global free_mem_area
     if not arena:
         arena = main_arena
-    libc = get_libc_base()
     bins = []
     if chunkhead["addr"] == 0:  # main_arena not initial
         return None
@@ -741,12 +722,10 @@ def largbin_index(size):
 
 
 def get_largebin(arena=None):
-    global largebin
-    global bin_corrupt
+    global largebin, bin_corrupt
     if not arena:
         arena = main_arena
     largebin = {}
-    min_largebin = 512 * int(capsize / 4)
     cmd = "x/" + word + "&((struct malloc_state *)" + hex(arena) + ").bins"
     bins_addr = int(gdb.execute(cmd, to_string=True).split(":")[0].split()[0].strip(), 16)
     for idx in range(64, 128):
@@ -771,14 +750,8 @@ def get_system_mem(arena=None):
 
 
 def get_heap_info(arena=None):
-    global main_arena
-    global thread_arena
-    global free_mem_area
-    global top
-    global enable_reveal_ptr
-    global tcache_enable
-    global tcache
-    global bin_corrupt
+    global main_arena, thread_arena, free_mem_area, top, bin_corrupt
+    global enable_reveal_ptr, tcache_enable, tcache
 
     top = {}
     free_mem_area = {}
@@ -830,10 +803,7 @@ def get_reg(reg):
 
 
 def trace_malloc():
-    global malloc_bp
-    global free_bp
-    global memalign_bp
-    global realloc_bp
+    global malloc_bp, free_bp, memalign_bp, realloc_bp
 
     malloc_bp = Malloc_Bp_handler("*" + "__libc_malloc")
     free_bp = Free_Bp_handler("*" + "__libc_free")
@@ -845,10 +815,7 @@ def trace_malloc():
 
 
 def dis_trace_malloc():
-    global malloc_bp
-    global free_bp
-    global memalign_bp
-    global realloc_bp
+    global malloc_bp, free_bp, memalign_bp, realloc_bp
 
     if malloc_bp:
         malloc_bp.delete()
@@ -914,8 +881,7 @@ def unlinkable(chunkaddr, fd=None, bk=None):
 
 
 def freeable(victim):
-    global fastchunk
-    global system_mem
+    global fastchunk, system_mem
     chunkaddr = victim
     try:
         if not get_heap_info():
