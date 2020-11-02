@@ -93,3 +93,8 @@ If you want to use the feature of heapinfo and tracemalloc , you need to install
 - checkheap
 
   ![checkheap](assets/checkheap.png)
+
+## Credit
+
+- https://github.com/scwuaptx/Pwngdb
+- https://github.com/pwndbg/pwndbg
