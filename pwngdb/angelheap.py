@@ -562,7 +562,6 @@ def get_tcache_entry():
                 tcache_entry[i].append(copy.deepcopy(chunk))
                 all_tcache_entry.append(chunk["addr"])
                 cmd = "x/" + word + hex(chunk["addr"] + capsize * 2)
-                chunk = {}
                 entry = int(gdb.execute(cmd, to_string=True).split(":")[1].strip(), 16)
                 if entry and enable_reveal_ptr:
                     entry = reveal_ptr(chunk["addr"] + capsize * 2, entry)
