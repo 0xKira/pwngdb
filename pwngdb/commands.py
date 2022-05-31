@@ -440,7 +440,7 @@ def show_magic(show_one):
     try:
         proc_map = get_proc_map()
         libc = get_libc_base()
-        data = re.findall(r'\S*libc.*\.so.*', proc_map)
+        data = re.findall(r'\S+/libc.+\.so.*', proc_map)
         if data:
             libc_path = data[0].split()[-1]
         print("========== function ==========")
@@ -476,4 +476,4 @@ def show_magic(show_one):
                 print("========== one gadget ==========")
                 system("one_gadget {}".format(libc_path))
     except:
-        print("You need run the program first")
+        print("Error occured, you may need run the program first")
