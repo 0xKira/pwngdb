@@ -323,11 +323,8 @@ def search_call(sym):
 
 def is_pie():
     proc_name = get_proc_name()
-    result = subprocess.check_output('readelf -h "{}"'.format(proc_name), shell=True).decode('utf8')
-    if re.search("DYN", result):
-        return True
-    else:
-        return False
+    result = subprocess.check_output('readelf -h -wN "{}"'.format(proc_name), shell=True).decode('utf8')
+    return 'Type:' in result and 'DYN (' in result
 
 
 def get_reg(reg):

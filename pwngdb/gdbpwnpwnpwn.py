@@ -46,11 +46,8 @@ def get_proc_name():
 
 
 def pie_on(proc_name):
-    result = check_output("readelf -h " + "\"" + proc_name + "\"", shell=True).decode('utf8')
-    if re.search("DYN", result):
-        return True
-    else:
-        return False
+    result = check_output("readelf -h -wN " + "\"" + proc_name + "\"", shell=True).decode('utf8')
+    return 'Type:' in result and 'DYN (' in result
 
 
 def init(output=True):
