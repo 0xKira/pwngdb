@@ -212,11 +212,14 @@ def get_proc_name(relative=False):
 
 def get_libc_base():
     proc_map = get_proc_map()
-    data = re.search(r".*libc.*\.so", proc_map)
+    data = re.search(r".+/libc\.so\.6", proc_map)
+    if not data:
+        # we accpet libc-2.27.so, not libcx.so
+        data = re.search(r".+/libc(?!\w).*\.so", proc_map)
     if data:
-        libc_base = data.group().split("-")[0]
-        gdb.execute("set $libc=%s" % hex(int(libc_base, 16)))
-        return int(libc_base, 16)
+        libc_base = int(data.group().split("-")[0], 16)
+        gdb.execute("set $libc=%s" % hex(libc_base))
+        return libc_base
     else:
         return 0
 
@@ -436,10 +439,9 @@ def get_fmt_arg(addr):
 def show_magic(show_one):
     try:
         proc_map = get_proc_map()
-        libc = get_libc_base()
-        data = re.findall(r'\S+/libc.+\.so.*', proc_map)
-        if data:
-            libc_path = data[0].split()[-1]
+        data = re.findall(r'\S+/libc(?!\w).*\.so.*', proc_map)
+        libc_path = data[0].split()[-1] if data else ''
+        libc_base = get_libc_base()
         print("========== function ==========")
         for f in magic_function:
             cmd = "x/" + word + "&" + f
@@ -461,7 +463,7 @@ def show_magic(show_one):
         if libc_path:
             cmd = 'strings -t x {} | grep "/bin/sh"'.format(libc_path)
             binsh_off = subprocess.check_output(cmd, shell=True).decode('utf8').split()[0]
-            binsh_addr = libc + int(binsh_off, 16)
+            binsh_addr = libc_base + int(binsh_off, 16)
             cmd = "x/" + word + hex(binsh_addr)
             binsh_content = gdb.execute(cmd, to_string=True).split(':')[1].strip()
             to_print = '\033[34m"/bin/sh"\033[33m(0x%s)\033[37m' % binsh_off
